@@ -8,22 +8,22 @@ export const SkillCard: React.FC<{skill:Skill;color:string;onClick:()=>void}> = 
   const done = skill.subModules.reduce((a,sm)=>a+sm.topics.filter(t=>t.completed).length,0);
   const pct = total>0?(done/total)*100:0;
   return (
-    <button onClick={onClick} className={`w-full p-4 rounded-xl border-2 text-left transition-all hover:shadow-lg ${skill.completed?'bg-green-50 dark:bg-green-900/20 border-green-500':'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
+    <button onClick={onClick} className={`w-full p-4 rounded-xl border-2 text-left transition-all hover:shadow-lg ${skill.completed?'bg-emerald-50 border-emerald-500':'bg-white border-indigo-900/10 hover:border-indigo-300'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            {skill.completed && <Icon n="check" s={15} c="text-green-500"/>}
-            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{skill.name}</h4>
+            {skill.completed && <Icon n="check" s={15} c="text-emerald-500"/>}
+            <h4 className="font-semibold text-indigo-950 text-sm">{skill.name}</h4>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">{skill.description}</p>
-          <div className="flex items-center gap-3 text-xs text-gray-400 mb-2">
+          <p className="text-xs text-indigo-600 mb-2 line-clamp-2">{skill.description}</p>
+          <div className="flex items-center gap-3 text-xs text-indigo-500 mb-2">
             <span className="font-medium" style={{color}}>{skill.xp} XP</span>
             <span>{done}/{total} topicos</span>
             <span>{skill.subModules.length} modulos</span>
           </div>
           <Bar p={pct} c={color} h={4}/>
         </div>
-        <Icon n="right" s={18} c="text-gray-400 mt-1 flex-shrink-0"/>
+        <Icon n="right" s={18} c="text-indigo-400 mt-1 flex-shrink-0"/>
       </div>
     </button>
   );

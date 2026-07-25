@@ -24,34 +24,34 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-indigo-950 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-cream-400 hover:text-cream-200 mb-8 transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Voltar
         </button>
 
-        <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-3xl p-8 shadow-2xl">
+        <div className="bg-indigo-900/50 border border-cream-200/10 rounded-3xl p-8 shadow-2xl">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-              <Icon n="lightning" s={24} c="text-white" />
+            <div className="w-12 h-12 rounded-xl bg-cream-200 flex items-center justify-center">
+              <Icon n="lightning" s={24} c="text-indigo-950" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Entrar</h1>
-              <p className="text-gray-400 text-sm">Acesse seu roadmap</p>
+              <h1 className="font-heading text-2xl font-bold text-cream-200">Entrar</h1>
+              <p className="text-cream-400 text-sm">Acesse seu roadmap</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Usuário</label>
+              <label className="block text-sm font-medium text-cream-300 mb-2">Usuário</label>
               <input
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-indigo-950/50 border border-cream-200/20 text-cream-200 placeholder-cream-400/50 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all"
                 placeholder="Digite seu usuário"
                 autoFocus
                 required
@@ -59,12 +59,12 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onBack }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Senha</label>
+              <label className="block text-sm font-medium text-cream-300 mb-2">Senha</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-indigo-950/50 border border-cream-200/20 text-cream-200 placeholder-cream-400/50 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all"
                 placeholder="Digite sua senha"
                 required
               />
@@ -79,7 +79,7 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onBack }) => {
             <button
               type="submit"
               disabled={loading || !username || !password}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-lg shadow-lg shadow-purple-500/25 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full py-3.5 rounded-xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -94,7 +94,7 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onBack }) => {
           </form>
         </div>
 
-        <p className="text-center text-gray-500 text-sm mt-6">
+        <p className="text-center text-cream-400 text-sm mt-6">
           Roadmap de Desenvolvimento — Ismael Douglas
         </p>
       </div>

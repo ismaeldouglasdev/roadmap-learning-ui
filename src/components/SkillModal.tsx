@@ -11,9 +11,9 @@ export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onT
   const pct = total>0?(done/total)*100:0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-indigo-950/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e=>e.stopPropagation()}>
+        <div className="p-6 border-b border-indigo-900/10">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
@@ -21,20 +21,20 @@ export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onT
                   <Icon n="book" s={20}/>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{skill.name}</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{skill.description}</p>
+                  <h2 className="font-heading text-xl font-bold text-indigo-950">{skill.name}</h2>
+                  <p className="text-sm text-indigo-600">{skill.description}</p>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-500">{done}/{total} topicos</span>
+                  <span className="text-indigo-600">{done}/{total} topicos</span>
                   <span className="font-medium" style={{color}}>{Math.round(pct)}%</span>
                 </div>
                 <Bar p={pct} c={color} h={6}/>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0">
-              <Icon n="x" s={20} c="text-gray-500"/>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-indigo-900/10 transition-colors flex-shrink-0">
+              <Icon n="x" s={20} c="text-indigo-600"/>
             </button>
           </div>
         </div>
@@ -43,13 +43,13 @@ export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onT
             <SubModCard key={sm.id} sm={sm} exp={expSM===sm.id} onToggle={()=>setExpSM(expSM===sm.id?null:sm.id)} onTopic={(tid)=>onTopic(sm.id,tid)} onExercise={(eid)=>onExercise(sm.id,eid)} color={color}/>
           ))}
         </div>
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
-          <span className="text-sm text-gray-500">+{skill.xp} XP ao completar todos os topicos</span>
+        <div className="p-4 border-t border-indigo-900/10 bg-cream-50 flex items-center justify-between">
+          <span className="text-sm text-indigo-600">+{skill.xp} XP ao completar todos os topicos</span>
           <div className="flex gap-2">
-            <button onClick={onQuiz} className="px-4 py-2 rounded-lg font-medium text-white text-sm bg-purple-600 hover:bg-purple-700 transition-colors">
+            <button onClick={onQuiz} className="px-4 py-2 rounded-lg font-medium text-cream-200 text-sm bg-indigo-950 hover:bg-indigo-900 transition-colors">
               Quiz
             </button>
-            <button onClick={onClose} className="px-5 py-2 rounded-lg font-medium text-white text-sm" style={{backgroundColor:color}}>Fechar</button>
+            <button onClick={onClose} className="px-5 py-2 rounded-lg font-medium text-indigo-950 text-sm font-medium" style={{backgroundColor:color}}>Fechar</button>
           </div>
         </div>
       </div>

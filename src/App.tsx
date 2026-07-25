@@ -154,21 +154,21 @@ const RoadmapView: React.FC = () => {
   const currentStep = questionnaire[generatorStep];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+    <div className="min-h-screen bg-cream-200">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-1">Roadmap de Desenvolvimento</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Clique numa skill para ver topicos. Marque concluidos para ganhar XP!</p>
+            <h1 className="font-heading text-3xl md:text-4xl font-bold text-indigo-950 mb-1">Roadmap de Desenvolvimento</h1>
+            <p className="text-indigo-700 text-sm">Clique numa skill para ver topicos. Marque concluidos para ganhar XP!</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowGenerator(true)} className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium flex items-center gap-2 transition-colors">
+            <button onClick={() => setShowGenerator(true)} className="px-3 py-2 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-cream-200 text-sm font-medium flex items-center gap-2 transition-colors">
               <Icon n="lightning" s={16} /> Gerar Roadmap
             </button>
-            <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-gray-700">
-              <span className="text-sm text-gray-600 dark:text-gray-400">{user}</span>
-              <button onClick={logout} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" title="Sair">
-                <Icon n="x" s={16} c="text-gray-500" />
+            <div className="flex items-center gap-2 pl-2 border-l border-indigo-800/30">
+              <span className="text-sm text-indigo-700">{user}</span>
+              <button onClick={logout} className="p-2 rounded-lg hover:bg-indigo-900/10 transition-colors" title="Sair">
+                <Icon n="x" s={16} c="text-indigo-700" />
               </button>
             </div>
           </div>
@@ -178,13 +178,13 @@ const RoadmapView: React.FC = () => {
 
         {searchFiltered ? (
           <div className="mt-6 space-y-2">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Resultados da busca ({searchFiltered.length})</h2>
+            <h2 className="font-heading text-lg font-bold text-indigo-950 mb-3">Resultados da busca ({searchFiltered.length})</h2>
             {searchFiltered.map(t => (
               <button key={`${t.phaseId}-${t.skillId}-${t.topicId}`} onClick={() => { const sk = phases.flatMap(p => p.skills).find(s => s.id === t.skillId); if (sk) openSkill(sk); }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-purple-400 transition-colors text-left">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.completed ? 'bg-green-500' : 'bg-gray-300'}`} />
-                <span className="text-sm text-gray-900 dark:text-white flex-1">{t.name}</span>
-                <span className="text-xs text-gray-400">{t.type}</span>
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white border border-indigo-900/10 hover:border-gold transition-colors text-left">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.completed ? 'bg-emerald-500' : 'bg-indigo-300'}`} />
+                <span className="text-sm text-indigo-950 flex-1">{t.name}</span>
+                <span className="text-xs text-indigo-600">{t.type}</span>
               </button>
             ))}
           </div>
@@ -193,16 +193,16 @@ const RoadmapView: React.FC = () => {
             <div className="mt-6 mb-6"><Stats xp={xp} streak={streak} /></div>
 
             <div className="mb-4 flex items-center gap-3">
-              <button onClick={() => setShowFavs(false)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!showFavs ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>Todos</button>
-              <button onClick={() => setShowFavs(true)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${showFavs ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}><Icon n="star" s={14} /> Favoritos</button>
+              <button onClick={() => setShowFavs(false)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!showFavs ? 'bg-indigo-950 text-cream-200' : 'text-indigo-700 hover:bg-indigo-900/10'}`}>Todos</button>
+              <button onClick={() => setShowFavs(true)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${showFavs ? 'bg-gold/20 text-gold-dark' : 'text-indigo-700 hover:bg-indigo-900/10'}`}><Icon n="star" s={14} /> Favoritos</button>
             </div>
 
             <div className="mb-8 relative">
-              <div className="absolute left-7 top-0 bottom-0 w-1 bg-gradient-to-b from-green-500 via-blue-500 to-purple-500 rounded-full" />
+              <div className="absolute left-7 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-sky-500 to-violet-500 rounded-full" />
               <div className="space-y-4">
                 {filteredPhases.map(ph => (
                   <div key={ph.id} className="relative pl-16">
-                    <div className={`absolute left-4 w-7 h-7 rounded-full border-4 border-white dark:border-gray-900 ${ph.unlocked ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} style={{ top: 20 }} />
+                    <div className={`absolute left-4 w-7 h-7 rounded-full border-4 border-cream-200 ${ph.unlocked ? 'bg-emerald-500' : 'bg-indigo-300'}`} style={{ top: 20 }} />
                     <PhaseCard phase={ph} expanded={expandedPhase === ph.id} onToggle={() => setExpandedPhase(expandedPhase === ph.id ? null : ph.id)} onSkillClick={openSkill} />
                   </div>
                 ))}
@@ -210,13 +210,13 @@ const RoadmapView: React.FC = () => {
             </div>
 
             <div className="mb-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Conquistas</h2>
+              <h2 className="font-heading text-xl font-bold text-indigo-950 mb-4">Conquistas</h2>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">{achievements.map(a => <Badge key={a.id} a={a} />)}</div>
             </div>
           </>
         )}
 
-        <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">Desenvolvido por Ismael Douglas</div>
+        <div className="text-center text-sm text-indigo-700 mt-8">Desenvolvido por Ismael Douglas</div>
       </div>
 
       {selectedSkill && (
@@ -235,25 +235,25 @@ const RoadmapView: React.FC = () => {
       )}
 
       {showGenerator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowGenerator(false)}>
-          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 dark:text-white">Gerar Roadmap com IA</h3>
-              <button onClick={() => setShowGenerator(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"><Icon n="x" s={18} c="text-gray-500" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-indigo-950/80 backdrop-blur-sm" onClick={() => setShowGenerator(false)}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-indigo-900/10 flex items-center justify-between">
+              <h3 className="font-heading font-bold text-indigo-950">Gerar Roadmap com IA</h3>
+              <button onClick={() => setShowGenerator(false)} className="p-1.5 rounded-lg hover:bg-indigo-900/10"><Icon n="x" s={18} c="text-indigo-700" /></button>
             </div>
-            <div className="p-1"><div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-4"><div className="h-1 bg-purple-600 rounded-full transition-all" style={{ width: `${((generatorStep + 1) / questionnaire.length) * 100}%` }} /></div></div>
+            <div className="p-1"><div className="h-1 bg-indigo-100 rounded-full mx-4"><div className="h-1 bg-gold rounded-full transition-all" style={{ width: `${((generatorStep + 1) / questionnaire.length) * 100}%` }} /></div></div>
             <div className="p-6">
-              <p className="text-sm text-gray-500 mb-1">Pergunta {generatorStep + 1} de {questionnaire.length}</p>
-              <p className="text-lg font-medium text-gray-900 dark:text-white mb-4">{currentStep.label}</p>
+              <p className="text-sm text-indigo-600 mb-1">Pergunta {generatorStep + 1} de {questionnaire.length}</p>
+              <p className="text-lg font-medium text-indigo-950 mb-4">{currentStep.label}</p>
               {currentStep.type === 'text' ? (
                 <div>
-                  <input type="text" value={generatorText} onChange={e => setGeneratorText(e.target.value)} placeholder={currentStep.placeholder} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white" autoFocus onKeyDown={e => { if (e.key === 'Enter' && generatorText.trim()) handleGeneratorAnswer(generatorText.trim()); }} />
-                  <button onClick={() => { if (generatorText.trim()) handleGeneratorAnswer(generatorText.trim()); }} disabled={!generatorText.trim()} className="mt-3 w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 transition-colors">Proximo</button>
+                  <input type="text" value={generatorText} onChange={e => setGeneratorText(e.target.value)} placeholder={currentStep.placeholder} className="w-full px-4 py-2.5 rounded-xl border border-indigo-900/20 bg-cream-50 text-indigo-950" autoFocus onKeyDown={e => { if (e.key === 'Enter' && generatorText.trim()) handleGeneratorAnswer(generatorText.trim()); }} />
+                  <button onClick={() => { if (generatorText.trim()) handleGeneratorAnswer(generatorText.trim()); }} disabled={!generatorText.trim()} className="mt-3 w-full py-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-cream-200 font-semibold disabled:opacity-50 transition-colors">Proximo</button>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {currentStep.options?.map(opt => (
-                    <button key={opt} onClick={() => handleGeneratorAnswer(opt)} className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 text-left text-sm text-gray-900 dark:text-white hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors">{opt}</button>
+                    <button key={opt} onClick={() => handleGeneratorAnswer(opt)} className="w-full p-3 rounded-xl border border-indigo-900/20 text-left text-sm text-indigo-950 hover:border-gold hover:bg-gold/10 transition-colors">{opt}</button>
                   ))}
                 </div>
               )}
