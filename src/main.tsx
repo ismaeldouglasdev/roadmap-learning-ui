@@ -1,9 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import RoadmapApp from '../RoadmapApp';
+import App from './App';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RoadmapApp />
+    <App />
   </React.StrictMode>
 );
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/roadmap-learning-ui/sw.js').catch(() => {});
+  });
+}
