@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Phase, Skill, Achievement, Account } from './types';
+import { Phase, Skill, Achievement } from './types';
 import { initialPhases } from './data/roadmap-dev';
 import { initialAchievements } from './data/achievements';
 import { StoreProvider, useStore } from './store';
+import { AuthProvider, useAuth } from './auth';
 import { Stats } from './components/Stats';
 import { PhaseCard } from './components/PhaseCard';
 import { Badge } from './components/Badge';
@@ -13,6 +14,10 @@ import { NotesPanel } from './features/notes/NotesPanel';
 import { Icon } from './components/Icon';
 import { questionnaire, QuestionnaireAnswers } from './features/ai-generator/questions';
 import { generateRoadmap } from './features/ai-generator/generator';
+import { Landing } from './Landing';
+import { LoginPage } from './Login';
+
+type Page = 'landing' | 'login' | 'roadmap';
 
 const LS_KEY = 'roadmap-progress';
 const loadProgress = () => { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; } };
@@ -20,12 +25,11 @@ const saveProgress = (ph: Phase[], ach: Achievement[], xp: number, streak: numbe
   localStorage.setItem(LS_KEY, JSON.stringify({ phases: ph, achievements: ach, xp, streak, favorites: favs }));
 };
 
-const loadAccount = (): Account | null => { try { const s = localStorage.getItem('roadmap-account'); return s ? JSON.parse(s) : null; } catch { return null; } };
-
-const AppContent: React.FC = () => {
+const RoadmapView: React.FC = () => {
   const store = useStore();
+  const { user, logout } = useAuth();
   const [phases, setPhases] = useState<Phase[]>(initialPhases);
-  const [achievements, setAchievements] = useState<Achievement[]>(initialAchievements);
+  const [achievements, setAchievements] = useState(initialAchievements);
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState(1);
   const [expandedPhase, setExpandedPhase] = useState<string | null>('phase-1');
@@ -33,8 +37,6 @@ const AppContent: React.FC = () => {
   const [quizOpen, setQuizOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesTopic, setNotesTopic] = useState<{ id: string; name: string; url: string } | null>(null);
-  const [account, setAccount] = useState<Account | null>(loadAccount);
-  const [showLogin, setShowLogin] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
   const [generatorStep, setGeneratorStep] = useState(0);
   const [generatorAnswers, setGeneratorAnswers] = useState<Record<string, string>>({});
@@ -43,7 +45,7 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     const s = loadProgress();
-    if (s) { setPhases(s.phases); setAchievements(s.achievements); setXp(s.xp); if (s.streak) setStreak(s.streak); if (s.favorites) store.favorites; }
+    if (s) { setPhases(s.phases); setAchievements(s.achievements); setXp(s.xp); if (s.streak) setStreak(s.streak); }
   }, []);
 
   useEffect(() => { saveProgress(phases, achievements, xp, streak, Array.from(store.favorites)); }, [phases, achievements, xp, streak, store.favorites]);
@@ -149,15 +151,6 @@ const AppContent: React.FC = () => {
     return phases;
   }, [phases, showFavs, store.favorites]);
 
-  const login = (name: string) => {
-    const acc: Account = { id: Date.now().toString(), name, createdAt: new Date().toISOString() };
-    setAccount(acc);
-    localStorage.setItem('roadmap-account', JSON.stringify(acc));
-    setShowLogin(false);
-  };
-
-  const logout = () => { setAccount(null); localStorage.removeItem('roadmap-account'); };
-
   const currentStep = questionnaire[generatorStep];
 
   return (
@@ -172,14 +165,12 @@ const AppContent: React.FC = () => {
             <button onClick={() => setShowGenerator(true)} className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium flex items-center gap-2 transition-colors">
               <Icon n="lightning" s={16} /> Gerar Roadmap
             </button>
-            {account ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">{account.name}</span>
-                <button onClick={logout} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><Icon n="x" s={16} c="text-gray-500" /></button>
-              </div>
-            ) : (
-              <button onClick={() => setShowLogin(true)} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><Icon n="users" s={20} c="text-gray-500" /></button>
-            )}
+            <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-gray-700">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{user}</span>
+              <button onClick={logout} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" title="Sair">
+                <Icon n="x" s={16} c="text-gray-500" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -243,16 +234,6 @@ const AppContent: React.FC = () => {
         <NotesPanel topicId={notesTopic.id} topicName={notesTopic.name} topicUrl={notesTopic.url} onClose={() => { setNotesOpen(false); setNotesTopic(null); }} />
       )}
 
-      {showLogin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogin(false)}>
-          <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Entrar</h2>
-            <input id="login-name" type="text" placeholder="Seu nome" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white mb-4" autoFocus onKeyDown={e => { if (e.key === 'Enter') { const v = (e.target as HTMLInputElement).value.trim(); if (v) login(v); } }} />
-            <button onClick={() => { const v = (document.getElementById('login-name') as HTMLInputElement)?.value?.trim(); if (v) login(v); }} className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors">Entrar</button>
-          </div>
-        </div>
-      )}
-
       {showGenerator && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowGenerator(false)}>
           <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -284,10 +265,36 @@ const AppContent: React.FC = () => {
   );
 };
 
+const AppRouter: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const [page, setPage] = useState<Page>(isAuthenticated ? 'roadmap' : 'landing');
+
+  useEffect(() => {
+    setPage(isAuthenticated ? 'roadmap' : 'landing');
+  }, [isAuthenticated]);
+
+  const { login } = useAuth();
+
+  const handleLogin = (user: string, pass: string): boolean => {
+    const ok = login(user, pass);
+    if (ok) setPage('roadmap');
+    return ok;
+  };
+
+  if (page === 'landing') return <Landing onLogin={() => setPage('login')} />;
+  if (page === 'login') return <LoginPage onLogin={handleLogin} onBack={() => setPage('landing')} />;
+
+  return (
+    <StoreProvider>
+      <RoadmapView />
+    </StoreProvider>
+  );
+};
+
 const App: React.FC = () => (
-  <StoreProvider>
-    <AppContent />
-  </StoreProvider>
+  <AuthProvider>
+    <AppRouter />
+  </AuthProvider>
 );
 
 export default App;
