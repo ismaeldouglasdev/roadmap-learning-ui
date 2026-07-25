@@ -95,7 +95,7 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onBack }) => {
         </div>
 
         <p className="text-center text-cream-400 text-sm mt-6">
-          Roadmap de Desenvolvimento — Ismael Douglas
+          RoadmapMaster — Ismael Douglas
         </p>
       </div>
     </div>

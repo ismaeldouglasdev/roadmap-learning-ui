@@ -6,18 +6,18 @@ interface LandingProps {
 }
 
 const features = [
-  { icon: 'check' as const, title: 'Progresso Gamificado', desc: 'Ganhe XP, suba de nível e desbloqueie conquistas conforme avança.' },
-  { icon: 'star' as const, title: 'Skills Detalhadas', desc: 'Cada skill com tópicos, exercícios e recursos curados.' },
-  { icon: 'lightning' as const, title: 'Quiz Interativo', desc: 'Teste seus conhecimentos com quizzes ao final de cada módulo.' },
-  { icon: 'users' as const, title: 'IA Generativa', desc: 'Gere roadmaps personalizados com inteligência artificial.' },
+  { icon: 'lightning' as const, title: 'IA Generativa', desc: 'Descreva o assunto que quer aprender e receba um roadmap completo gerado por IA.' },
+  { icon: 'star' as const, title: 'Gamificação Total', desc: 'Ganhe XP, suba de nível e desbloqueie conquistas conforme avança no estudo.' },
+  { icon: 'check' as const, title: 'Quiz & Exercícios', desc: 'Teste seus conhecimentos com quizzes e exercícios ao final de cada módulo.' },
+  { icon: 'users' as const, title: 'Progresso Detalhado', desc: 'Acompanhe cada tópico, anote suas observações e marque o que já dominou.' },
 ];
 
 const phases = [
-  { n: 1, name: 'Fundamentos', color: 'bg-emerald-500', skills: 'Python, TypeScript, Git' },
-  { n: 2, name: 'Frontend', color: 'bg-sky-500', skills: 'React, Next.js, Tailwind' },
-  { n: 3, name: 'Backend', color: 'bg-violet-500', skills: 'APIs, BD, Auth' },
-  { n: 4, name: 'DevOps', color: 'bg-amber-500', skills: 'Docker, CI/CD, Cloud' },
-  { n: 5, name: 'Projetos', color: 'bg-rose-500', skills: 'Portfolio, Open Source' },
+  { n: 1, name: 'Fundamentos', color: 'bg-emerald-500', skills: 'Conceitos básicos e teoria essencial' },
+  { n: 2, name: 'Intermediário', color: 'bg-sky-500', skills: 'Prática avançada e projetos' },
+  { n: 3, name: 'Avançado', color: 'bg-violet-500', skills: 'Técnicas especializadas' },
+  { n: 4, name: 'Especialização', color: 'bg-amber-500', skills: 'Foco e nicho do assunto' },
+  { n: 5, name: 'Mestre', color: 'bg-rose-500', skills: 'Domínio total e criação própria' },
 ];
 
 export const Landing: React.FC<LandingProps> = ({ onLogin }) => (
@@ -36,14 +36,14 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => (
 
     <section className="max-w-6xl mx-auto px-6 pt-20 pb-28 text-center">
       <div className="inline-block px-4 py-1.5 rounded-full bg-gold/10 border border-gold/30 text-gold text-sm font-medium mb-6">
-        Plataforma de Aprendizado Gamificada
+        Roadmaps para Qualquer Assunto
       </div>
       <h1 className="font-heading text-5xl md:text-7xl font-extrabold text-cream-200 leading-tight mb-6">
-        Domine Desenvolvimento<br />
-        <span className="text-gold">Full-Stack</span>
+        Crie seu Próximo<br />
+        <span className="text-gold">Roadmap</span>
       </h1>
       <p className="text-lg md:text-xl text-cream-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-        Roadmap interativo com XP, conquistas e quizzes. Aprenda Python, TypeScript, React, DevOps e muito mais — tudo gamificado.
+        Programação, moda, culinária, negócios — qualquer assunto que você queira dominar. Gere um roadmap gamificado com XP, conquistas e quizzes.
       </p>
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <button onClick={onLogin} className="px-8 py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105">
@@ -71,7 +71,7 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => (
     </section>
 
     <section className="max-w-6xl mx-auto px-6 pb-20">
-      <h2 className="font-heading text-3xl font-bold text-cream-200 text-center mb-12">5 Fases do Roadmap</h2>
+      <h2 className="font-heading text-3xl font-bold text-cream-200 text-center mb-12">Qualquer Assunto, Um Plano Claro</h2>
       <div className="relative">
         <div className="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-sky-500 to-violet-500 rounded-full hidden md:block" />
         <div className="space-y-4">
@@ -98,16 +98,16 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => (
     <section className="max-w-6xl mx-auto px-6 pb-24 text-center">
       <div className="p-10 rounded-3xl bg-indigo-900/30 border border-gold/20">
         <h2 className="font-heading text-3xl font-bold text-cream-200 mb-4">Pronto para começar?</h2>
-        <p className="text-cream-400 mb-8 max-w-lg mx-auto">Junte-se a outros desenvolvedores e comece sua jornada de aprendizado gamificada hoje.</p>
+        <p className="text-cream-400 mb-8 max-w-lg mx-auto">Descreva o assunto que quer dominar e comece sua jornada de aprendizado gamificada hoje.</p>
         <button onClick={onLogin} className="px-10 py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105">
-          Entrar no Roadmap
+          Criar Meu Roadmap
         </button>
       </div>
     </section>
 
     <footer className="border-t border-cream-200/10 py-8">
       <div className="max-w-6xl mx-auto px-6 text-center text-cream-400 text-sm">
-        Desenvolvido por Ismael Douglas
+        Desenvolvido por Ismael Douglas — Roadmaps para qualquer assunto.
       </div>
     </footer>
   </div>
