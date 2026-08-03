@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Phase, Skill, Achievement } from './types';
 import { initialPhases } from './data/roadmap-dev';
 import { initialAchievements } from './data/achievements';
@@ -20,14 +20,32 @@ import { LoginPage } from './Login';
 type Page = 'landing' | 'login' | 'roadmap';
 
 const LS_KEY = 'roadmap-progress';
-const loadProgress = () => { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; } };
-const saveProgress = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[]) => {
+const BASE_URL = 'http://localhost:8084';
+
+const loadProgressLocal = () => { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; } };
+const saveProgressLocal = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[]) => {
   localStorage.setItem(LS_KEY, JSON.stringify({ phases: ph, achievements: ach, xp, streak, favorites: favs }));
+};
+
+const loadProgressServer = async (token: string | null) => {
+  if (!token) return null;
+  try {
+    const response = await fetch(`${BASE_URL}/api/progress`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.progress;
+    }
+  } catch (error) {
+    console.error('Failed to load progress from server:', error);
+  }
+  return null;
 };
 
 const RoadmapView: React.FC = () => {
   const store = useStore();
-  const { user, logout } = useAuth();
+  const { user, logout, getToken } = useAuth();
   const [phases, setPhases] = useState<Phase[]>(initialPhases);
   const [achievements, setAchievements] = useState(initialAchievements);
   const [xp, setXp] = useState(0);
@@ -43,12 +61,78 @@ const RoadmapView: React.FC = () => {
   const [generatorText, setGeneratorText] = useState('');
   const [showFavs, setShowFavs] = useState(false);
 
-  useEffect(() => {
-    const s = loadProgress();
-    if (s) { setPhases(s.phases); setAchievements(s.achievements); setXp(s.xp); if (s.streak) setStreak(s.streak); }
-  }, []);
+  const hasLoadedRef = useRef(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => { saveProgress(phases, achievements, xp, streak, Array.from(store.favorites)); }, [phases, achievements, xp, streak, store.favorites]);
+  useEffect(() => {
+    let cancelled = false;
+    const token = getToken();
+
+    const doLoad = async () => {
+      const serverData = await loadProgressServer(token);
+      if (cancelled) return;
+
+      if (serverData) {
+        if (serverData.phases) setPhases(serverData.phases);
+        if (serverData.achievements) setAchievements(serverData.achievements);
+        if (typeof serverData.xp === 'number') setXp(serverData.xp);
+        if (typeof serverData.streak === 'number') setStreak(serverData.streak);
+        store.hydrate(serverData.notes || {}, serverData.favorites || []);
+      } else {
+        const local = loadProgressLocal();
+        if (local) {
+          setPhases(local.phases);
+          setAchievements(local.achievements);
+          setXp(local.xp);
+          if (local.streak) setStreak(local.streak);
+        }
+      }
+      hasLoadedRef.current = true;
+    };
+
+    doLoad();
+    return () => { cancelled = true; };
+  }, [getToken, store]);
+
+  useEffect(() => {
+    saveProgressLocal(phases, achievements, xp, streak, Array.from(store.favorites));
+
+    if (!hasLoadedRef.current || !getToken()) return;
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const payload = {
+          phases,
+          achievements,
+          xp,
+          streak,
+          favorites: Array.from(store.favorites),
+          notes: store.notes,
+          updatedAt: new Date().toISOString(),
+        };
+
+        await fetch(`${BASE_URL}/api/progress`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ progress: payload }),
+        });
+      } catch (error) {
+        console.debug('Progress sync failed (offline):', error);
+      }
+    }, 1500);
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [phases, achievements, xp, streak, store.favorites, store.notes, getToken]);
 
   useEffect(() => {
     const tc = phases.reduce((a, p) => a + p.skills.filter(s => s.completed).length, 0);
@@ -266,23 +350,27 @@ const RoadmapView: React.FC = () => {
 };
 
 const AppRouter: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login, register } = useAuth();
   const [page, setPage] = useState<Page>(isAuthenticated ? 'roadmap' : 'landing');
 
   useEffect(() => {
     setPage(isAuthenticated ? 'roadmap' : 'landing');
   }, [isAuthenticated]);
 
-  const { login } = useAuth();
+  const handleLogin = async (user: string, pass: string): Promise<boolean> => {
+    const ok = await login(user, pass);
+    if (ok) setPage('roadmap');
+    return ok;
+  };
 
-  const handleLogin = (user: string, pass: string): boolean => {
-    const ok = login(user, pass);
+  const handleRegister = async (user: string, pass: string): Promise<boolean> => {
+    const ok = await register(user, pass);
     if (ok) setPage('roadmap');
     return ok;
   };
 
   if (page === 'landing') return <Landing onLogin={() => setPage('login')} />;
-  if (page === 'login') return <LoginPage onLogin={handleLogin} onBack={() => setPage('landing')} />;
+  if (page === 'login') return <LoginPage onLogin={handleLogin} onRegister={handleRegister} onBack={() => setPage('landing')} />;
 
   return (
     <StoreProvider>

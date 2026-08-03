@@ -2,25 +2,28 @@ import React, { useState } from 'react';
 import { Icon } from './components/Icon';
 
 interface LoginProps {
-  onLogin: (user: string, pass: string) => boolean;
+  onLogin: (user: string, pass: string) => Promise<boolean>;
+  onRegister: (user: string, pass: string) => Promise<boolean>;
   onBack: () => void;
 }
 
-export const LoginPage: React.FC<LoginProps> = ({ onLogin, onBack }) => {
+export const LoginPage: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
+  const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const ok = onLogin(username, password);
-      if (!ok) setError('Usuário ou senha inválidos');
-      setLoading(false);
-    }, 600);
+    
+    const ok = isRegister ? await onRegister(username, password) : await onLogin(username, password);
+    if (!ok) {
+      setError(isRegister ? 'Não foi possível criar conta' : 'Usuário ou senha inválidos');
+    }
+    setLoading(false);
   };
 
   return (
@@ -39,8 +42,8 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onBack }) => {
               <Icon n="lightning" s={24} c="text-indigo-950" />
             </div>
             <div>
-              <h1 className="font-heading text-2xl font-bold text-cream-200">Entrar</h1>
-              <p className="text-cream-400 text-sm">Acesse seu roadmap</p>
+              <h1 className="font-heading text-2xl font-bold text-cream-200">{isRegister ? 'Criar conta' : 'Entrar'}</h1>
+              <p className="text-cream-400 text-sm">{isRegister ? 'Comece sua jornada' : 'Acesse seu roadmap'}</p>
             </div>
           </div>
 
@@ -87,11 +90,18 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Entrando...
+                  {isRegister ? 'Criando...' : 'Entrando...'}
                 </span>
-              ) : 'Entrar'}
+              ) : (isRegister ? 'Criar conta' : 'Entrar')}
             </button>
           </form>
+
+          <button
+            onClick={() => { setIsRegister(!isRegister); setError(''); }}
+            className="w-full mt-4 text-sm text-cream-400 hover:text-gold transition-colors text-center"
+          >
+            {isRegister ? 'Já tenho conta' : 'Criar conta'}
+          </button>
         </div>
 
         <p className="text-center text-cream-400 text-sm mt-6">

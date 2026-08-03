@@ -14,6 +14,7 @@ interface StoreState {
   toggleFilter: (category: 'type' | 'completion' | 'difficulty', value: string) => void;
   setNote: (topicId: string, text: string) => void;
   toggleFavorite: (topicId: string) => void;
+  hydrate: (notes: Record<string, string>, favorites: string[]) => void;
 }
 
 const StoreContext = createContext<StoreState | undefined>(undefined);
@@ -51,7 +52,13 @@ export const StoreProvider: React.FC<{children: ReactNode}> = ({ children }) => 
     });
   };
 
-  // load persisted data on mount
+  const hydrate = (notesData: Record<string, string>, favoritesData: string[]) => {
+    setNotes(notesData);
+    setFavorites(new Set(favoritesData));
+    localStorage.setItem('roadmap-notes', JSON.stringify(notesData));
+    localStorage.setItem('roadmap-favorites', JSON.stringify(favoritesData));
+  };
+
   React.useEffect(() => {
     const storedNotes = localStorage.getItem('roadmap-notes');
     if (storedNotes) setNotes(JSON.parse(storedNotes));
@@ -69,6 +76,7 @@ export const StoreProvider: React.FC<{children: ReactNode}> = ({ children }) => 
       toggleFilter,
       setNote,
       toggleFavorite,
+      hydrate,
     }}>
       {children}
     </StoreContext.Provider>

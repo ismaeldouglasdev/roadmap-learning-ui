@@ -553,4 +553,88 @@ export const initialPhases: Phase[] = [
       },
     ],
   },
+  {
+    id: 'phase-7', number: 7, title: 'Cybersecurity', subtitle: 'Pentest WiFi, Anonimato & Red Team',
+    color: '#DC2626', icon: 'shield', unlocked: false,
+    skills: [
+      { id: 'wifi-pentest', name: 'Pentest WiFi', description: 'Reconhecimento, captura de handshake, Evil Twin, WPS, WPA-Enterprise', xp: 200, completed: false,
+        subModules: [
+          { id: 'wp-recon', name: 'Reconhecimento Wireless', topics: [
+            { id:'wp-r1', name:'Aircrack-ng Docs', url:'https://www.aircrack-ng.org/doku.php?id=getting_started', type:'doc', completed:false },
+            { id:'wp-r2', name:'Airodump-ng Tutorial', url:'https://www.aircrack-ng.org/doku.php?id=airodump-ng', type:'doc', completed:false },
+            { id:'wp-r3', name:'Kismet Documentation', url:'https://www.kismetwireless.net/docs/readme/', type:'doc', completed:false },
+            { id:'wp-r4', name:'WiFi Recon Methodology', url:'https://www.wireshark.org/docs/wsug_html_chunked/', type:'article', completed:false },
+            { id:'wp-r5', name:'Wireless Hacking (YouTube)', url:'https://www.youtube.com/watch?v=GPDNzKMJH_Y', type:'video', completed:false },
+          ],
+            exercises: [
+              { id:'wp-re1', title:'Capturar handshake WPA2', description:'Use airodump-ng para capturar handshake de uma rede WiFi de teste', difficulty:'medium', completed:false },
+              { id:'wp-re2', title:'PMKID attack', description:'Execute ataque PMKID com hcxdumptool e converta com hcxtools', difficulty:'hard', completed:false },
+            ]
+          },
+          { id: 'wp-attacks', name: 'Ataques WiFi', topics: [
+            { id:'wp-a1', name:'Evil Twin com hostapd-mana', url:'https://github.com/sensepost/hostapd-mana', type:'doc', completed:false },
+            { id:'wp-a2', name:'EAPHammer (WPA-Enterprise)', url:'https://github.com/s0lst1c3/ephopper', type:'doc', completed:false },
+            { id:'wp-a3', name:'Reaver WPS Attack', url:'https://github.com/t6x/reaver-wps-fork-t6x', type:'doc', completed:false },
+            { id:'wp-a4', name:'MDK4 WiFi DoS', url:'https://github.com/wi-fi-analyzer/mdk4', type:'doc', completed:false },
+            { id:'wp-a5', name:'Bettercap MITM', url:'https://www.bettercap.org/', type:'doc', completed:false },
+            { id:'wp-a6', name:'WiFi Pentest Methodology', url:'https://www.offensive-security.com/metasploit-unleashed/wireless-attacks/', type:'article', completed:false },
+          ],
+            exercises: [
+              { id:'wp-ae1', title:'Evil Twin AP', description:'Configure um Evil Twin AP com hostapd-mana para capturar credenciais', difficulty:'hard', completed:false },
+              { id:'wp-ae2', title:'WPS Pixie Dust', description:'Execute ataque Pixie Dust em rede WPS usando Reaver', difficulty:'hard', completed:false },
+            ]
+          },
+          { id: 'wp-crack', name: 'Quebra de Senhas', topics: [
+            { id:'wp-c1', name:'Aircrack-ng Dictionary Attack', url:'https://www.aircrack-ng.org/doku.php?id=cracking', type:'doc', completed:false },
+            { id:'wp-c2', name:'Hashcat WPA Rules', url:'https://hashcat.net/wiki/doku.php?id=rule_based_attack', type:'doc', completed:false },
+            { id:'wp-c3', name:'John the Ripper WiFi', url:'https://www.openwall.com/john/doc/WPA/', type:'doc', completed:false },
+            { id:'wp-c4', name:'Custom Wordlists (Crunch)', url:'https://github.com/crunchsec/crunch', type:'doc', completed:false },
+          ],
+            exercises: [
+              { id:'wp-ce1', title:'Quebrar WPA2 handshake', description:'Use aircrack-ng com wordlist para quebrar handshake capturado', difficulty:'medium', completed:false },
+              { id:'wp-ce2', title:'Hashcat GPU cracking', description:'Quebre PMKID usando Hashcat com regra customizado', difficulty:'hard', completed:false },
+            ]
+          },
+        ]
+      },
+      { id: 'anonymity', name: 'Anonimato Digital', description: 'Tor, VPN, MAC randomization, proxy chains, opsec', xp: 150, completed: false,
+        subModules: [
+          { id: 'an-fund', name: 'Fundamentos de Anonimato', topics: [
+            { id:'an-f1', name:'Tor Project Manual', url:'https://support.torproject.org/tbb/how-to-verify/', type:'doc', completed:false },
+            { id:'an-f2', name:'Tor Browser Guide', url:'https://tb-manual.torproject.org/', type:'doc', completed:false },
+            { id:'an-f3', name:'Privacy Guides', url:'https://www.privacyguides.org/', type:'article', completed:false },
+            { id:'an-f4', name:'EFF Surveillance Self-Defense', url:'https://ssd.eff.org/', type:'doc', completed:false },
+            { id:'an-f5', name:'Privacy Opsec (YouTube)', url:'https://www.youtube.com/watch?v=lpCGVjm9rYA', type:'video', completed:false },
+          ],
+            exercises: [
+              { id:'an-fe1', title:'Tor + Whonix setup', description:'Configure Whonix gateway + workstation no VirtualBox', difficulty:'medium', completed:false },
+            ]
+          },
+          { id: 'an-network', name: 'Anonimato de Rede', topics: [
+            { id:'an-n1', name:'MAC Address Randomization', url:'https://wiki.archlinux.org/title/Network_configuration#Wireless', type:'doc', completed:false },
+            { id:'an-n2', name:'ProxyChains Guide', url:'https://github.com/haad/proxychains', type:'doc', completed:false },
+            { id:'an-n3', name:'VPN Security Analysis', url:'https://www.ivpn.net/privacy/how-we-protect-your-privacy/', type:'article', completed:false },
+            { id:'an-n4', name:'DNS Leak Prevention', url:'https://www.dnsleaktest.com/', type:'exercise', completed:false },
+            { id:'an-n5', name:'MAC Spoofing Linux', url:'https://wiki.archlinux.org/title/MAC_address_spoofing', type:'doc', completed:false },
+            { id:'an-n6', name:'Air-gapped Systems', url:'https://tails.net/install/index.en.html', type:'doc', completed:false },
+          ],
+            exercises: [
+              { id:'an-ne1', title:'MAC rotation script', description:'Crie script bash que rotaciona MAC address a cada N minutos', difficulty:'medium', completed:false },
+              { id:'an-ne2', title:'Proxy chain pentest', description:'Configure ProxyChains para rotear tráfego via Tor durante pentest', difficulty:'medium', completed:false },
+            ]
+          },
+          { id: 'an-opsec', name: 'Operational Security', topics: [
+            { id:'an-o1', name:'Pentest Opsec Best Practices', url:'https://www.offensive-security.com/metasploit-unleashed/covered-tracks/', type:'article', completed:false },
+            { id:'an-o2', name:'Virtual Machine Isolation', url:'https://www.kali.org/docs/virtualization/', type:'doc', completed:false },
+            { id:'an-o3', name:'USB WiFi Adapter Passthrough', url:'https://www.virtualbox.org/manual/ch03.html', type:'doc', completed:false },
+            { id:'an-o4', name:'Log Management for Pentest', url:'https://www.sans.org/white-papers/logging-analyst-detect/', type:'article', completed:false },
+          ],
+            exercises: [
+              { id:'an-oe1', title:'Clean VM pentest setup', description:'Configure Kali VM com USB passthrough, MAC randomization, e Tor', difficulty:'hard', completed:false },
+            ]
+          },
+        ]
+      },
+    ],
+  },
 ];
