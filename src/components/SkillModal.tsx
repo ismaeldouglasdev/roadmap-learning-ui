@@ -4,7 +4,7 @@ import { Icon } from './Icon';
 import { Bar } from './Bar';
 import { SubModCard } from './SubModCard';
 
-export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onTopic:(smId:string,tId:string)=>void;onExercise:(smId:string,exId:string)=>void;onQuiz:()=>void}> = ({skill,color,onClose,onTopic,onExercise,onQuiz}) => {
+export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onTopic:(smId:string,tId:string)=>void;onExercise:(smId:string,exId:string)=>void;onStudy:(smId:string,tId:string)=>void;onQuiz:()=>void}> = ({skill,color,onClose,onTopic,onExercise,onStudy,onQuiz}) => {
   const [expSM,setExpSM] = useState<string|null>(skill.subModules[0]?.id||null);
   const total = skill.subModules.reduce((a,sm)=>a+sm.topics.length,0);
   const done = skill.subModules.reduce((a,sm)=>a+sm.topics.filter(t=>t.completed).length,0);
@@ -40,7 +40,7 @@ export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onT
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
           {skill.subModules.map(sm=>(
-            <SubModCard key={sm.id} sm={sm} exp={expSM===sm.id} onToggle={()=>setExpSM(expSM===sm.id?null:sm.id)} onTopic={(tid)=>onTopic(sm.id,tid)} onExercise={(eid)=>onExercise(sm.id,eid)} color={color}/>
+            <SubModCard key={sm.id} sm={sm} exp={expSM===sm.id} onToggle={()=>setExpSM(expSM===sm.id?null:sm.id)} onTopic={(tid)=>onTopic(sm.id,tid)} onExercise={(eid)=>onExercise(sm.id,eid)} onStudy={(tid)=>onStudy(sm.id,tid)} color={color}/>
           ))}
         </div>
         <div className="p-4 border-t border-indigo-900/10 bg-cream-50 flex items-center justify-between">

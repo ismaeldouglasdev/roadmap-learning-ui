@@ -1,8 +1,9 @@
 import React from 'react';
 import { Topic } from '../types';
 import { Icon, typeIcon, typeColor, typeLabel } from './Icon';
+import { hasLesson } from '../data/lessons';
 
-export const TopicRow: React.FC<{t:Topic;onToggle:()=>void}> = ({t,onToggle}) => (
+export const TopicRow: React.FC<{t:Topic;onToggle:()=>void;onStudy:()=>void}> = ({t,onToggle,onStudy}) => (
   <div className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${t.completed?'bg-emerald-50 border-emerald-200':'bg-white border-indigo-900/10 hover:border-indigo-300'}`}>
     <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0" style={{backgroundColor:typeColor[t.type]}}>
       <Icon n={typeIcon[t.type]} s={16}/>
@@ -15,6 +16,11 @@ export const TopicRow: React.FC<{t:Topic;onToggle:()=>void}> = ({t,onToggle}) =>
       <span className="text-xs text-indigo-500">{typeLabel[t.type]}</span>
     </div>
     <div className="flex items-center gap-1.5 flex-shrink-0">
+      {hasLesson() && (
+        <button onClick={onStudy} className="p-1.5 rounded-lg bg-violet-100 text-violet-600 hover:bg-violet-200 transition-colors" title="Estudar lição interativa">
+          <Icon n="play" s={14}/>
+        </button>
+      )}
       <a href={t.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
         className="p-1.5 rounded-lg bg-gold/10 text-gold-dark hover:bg-gold/20 transition-colors" title="Abrir link">
         <Icon n="link" s={14}/>

@@ -4,7 +4,7 @@ import { Icon } from './Icon';
 import { Bar } from './Bar';
 import { TopicRow } from './TopicRow';
 
-export const SubModCard: React.FC<{sm:SubModule;exp:boolean;onToggle:()=>void;onTopic:(id:string)=>void;onExercise:(id:string)=>void;color:string}> = ({sm,exp,onToggle,onTopic,onExercise,color}) => {
+export const SubModCard: React.FC<{sm:SubModule;exp:boolean;onToggle:()=>void;onTopic:(id:string)=>void;onExercise:(id:string)=>void;onStudy:(id:string)=>void;color:string}> = ({sm,exp,onToggle,onTopic,onExercise,onStudy,color}) => {
   const done = sm.topics.filter(t=>t.completed).length;
   const pct = (done/sm.topics.length)*100;
   const exDone = sm.exercises?.filter(e=>e.completed).length||0;
@@ -26,7 +26,7 @@ export const SubModCard: React.FC<{sm:SubModule;exp:boolean;onToggle:()=>void;on
       </button>
       {exp && (
         <div className="px-4 pb-4 space-y-2">
-          {sm.topics.map(t=><TopicRow key={t.id} t={t} onToggle={()=>onTopic(t.id)}/>)}
+          {sm.topics.map(t=><TopicRow key={t.id} t={t} onToggle={()=>onTopic(t.id)} onStudy={()=>onStudy(t.id)}/>)}
           {sm.exercises&&sm.exercises.length>0&&(
             <div className="mt-3 pt-3 border-t border-indigo-900/10">
               <h5 className="text-xs font-semibold text-indigo-500 mb-2 uppercase tracking-wider">Exercicios</h5>

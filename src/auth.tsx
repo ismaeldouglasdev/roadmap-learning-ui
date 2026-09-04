@@ -12,7 +12,7 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 const LS_KEY = 'roadmap-auth';
-const BASE_URL = 'http://localhost:8084';
+const BASE_URL = 'http://localhost:8091';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

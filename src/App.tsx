@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Phase, Skill, Achievement } from './types';
+import { Phase, Skill, Achievement, Lesson, Topic } from './types';
 import { initialPhases } from './data/roadmap-dev';
 import { initialAchievements } from './data/achievements';
+import { lessonData } from './data/lessons';
+import { generateLesson } from './features/question-generator';
 import { StoreProvider, useStore } from './store';
 import { AuthProvider, useAuth } from './auth';
 import { Stats } from './components/Stats';
@@ -9,6 +11,7 @@ import { PhaseCard } from './components/PhaseCard';
 import { Badge } from './components/Badge';
 import { SkillModal } from './components/SkillModal';
 import { QuizModal } from './components/QuizModal';
+import { LessonModal } from './components/LessonModal';
 import { SearchBar } from './features/search/SearchBar';
 import { NotesPanel } from './features/notes/NotesPanel';
 import { Icon } from './components/Icon';
@@ -20,7 +23,7 @@ import { LoginPage } from './Login';
 type Page = 'landing' | 'login' | 'roadmap';
 
 const LS_KEY = 'roadmap-progress';
-const BASE_URL = 'http://localhost:8084';
+const BASE_URL = 'http://localhost:8091';
 
 const loadProgressLocal = () => { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; } };
 const saveProgressLocal = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[]) => {
@@ -53,6 +56,7 @@ const RoadmapView: React.FC = () => {
   const [expandedPhase, setExpandedPhase] = useState<string | null>('phase-1');
   const [selectedSkill, setSelectedSkill] = useState<{ skill: Skill; color: string } | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
+  const [lessonTopic, setLessonTopic] = useState<{ topic: Topic; lesson: Lesson; skillId: string; color: string } | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesTopic, setNotesTopic] = useState<{ id: string; name: string; url: string } | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
@@ -149,24 +153,38 @@ const RoadmapView: React.FC = () => {
   }, [phases, xp, streak]);
 
   useEffect(() => {
-    setPhases(p => p.map((ph, i) => {
-      if (i === 0) return { ...ph, unlocked: true };
-      return { ...ph, unlocked: p[i - 1].skills.every(s => s.completed) };
-    }));
+    setPhases(p => {
+      const next = p.map((ph, i) => {
+        if (i === 0) return ph.unlocked ? ph : { ...ph, unlocked: true };
+        const unlocked = p[i - 1].skills.every(s => s.completed);
+        return ph.unlocked === unlocked ? ph : { ...ph, unlocked };
+      });
+      return next.every((ph, i) => ph === p[i]) ? p : next;
+    });
   }, [phases]);
 
   useEffect(() => {
-    phases.forEach(ph => {
-      ph.skills.forEach(sk => {
+    const xpToAdd = phases.reduce((acc, ph) =>
+      acc + ph.skills.reduce((a, sk) => {
         const allDone = sk.subModules.every(sm => sm.topics.every(t => t.completed));
-        if (allDone && !sk.completed) {
-          setPhases(p => p.map(x => x.id !== ph.id ? x : { ...x, skills: x.skills.map(s => {
-            if (s.id !== sk.id) return s;
-            if (!s.completed) setXp(prev => prev + s.xp);
-            return { ...s, completed: true };
-          }) }));
-        }
+        return allDone && !sk.completed ? a + sk.xp : a;
+      }, 0), 0);
+    if (xpToAdd > 0) setXp(prev => prev + xpToAdd);
+
+    setPhases(p => {
+      let changed = false;
+      const next = p.map(ph => {
+        const skills = ph.skills.map(sk => {
+          const allDone = sk.subModules.every(sm => sm.topics.every(t => t.completed));
+          if (allDone && !sk.completed) {
+            changed = true;
+            return { ...sk, completed: true };
+          }
+          return sk;
+        });
+        return skills.some((s, i) => s !== ph.skills[i]) ? { ...ph, skills } : ph;
       });
+      return changed ? next : p;
     });
   }, [phases]);
 
@@ -185,6 +203,37 @@ const RoadmapView: React.FC = () => {
   const openSkill = (sk: Skill) => {
     const ph = phases.find(p => p.skills.some(s => s.id === sk.id));
     setSelectedSkill({ skill: sk, color: ph?.color || '#10B981' });
+  };
+
+  const handleStudy = (skillId: string, _subModId: string, topicId: string) => {
+    const sk = phases.flatMap(p => p.skills).find(s => s.id === skillId);
+    if (!sk) return;
+    const topic = sk.subModules.flatMap(sm => sm.topics).find(t => t.id === topicId);
+    if (!topic) return;
+    let lesson = lessonData.find((l: Lesson) => l.topicId === topicId);
+    if (!lesson) {
+      const generated = generateLesson(topicId, topic.name);
+      if (!generated) return;
+      lesson = generated;
+    }
+    const ph = phases.find(p => p.skills.some(s => s.id === skillId));
+    setLessonTopic({ topic, lesson, skillId, color: ph?.color || '#10B981' });
+  };
+
+  const completeTopic = (phaseId: string, skillId: string, subModId: string, topicId: string, xpAward: number) => {
+    const wasCompleted = phases.find(p => p.id === phaseId)?.skills.find(s => s.id === skillId)?.subModules.find(sm => sm.id === subModId)?.topics.find(t => t.id === topicId)?.completed;
+    const complete = (s: Skill) => ({ ...s, subModules: s.subModules.map(sm => sm.id !== subModId ? sm : { ...sm, topics: sm.topics.map(t => t.id === topicId ? { ...t, completed: true } : t) }) });
+    setPhases(prev => prev.map(ph => ph.id !== phaseId ? ph : { ...ph, skills: ph.skills.map(sk => sk.id !== skillId ? sk : complete(sk)) }));
+    if (selectedSkill && selectedSkill.skill.id === skillId) setSelectedSkill(prev => prev ? { ...prev, skill: complete(prev.skill) } : null);
+    if (!wasCompleted && xpAward > 0) setXp(prev => prev + xpAward);
+  };
+
+  const handleLessonComplete = (xp: number) => {
+    if (!lessonTopic) return;
+    const ph = phases.find(p => p.skills.some(s => s.id === lessonTopic.skillId));
+    const sm = ph?.skills.find(s => s.id === lessonTopic.skillId)?.subModules.find(m => m.topics.some(t => t.id === lessonTopic.topic.id));
+    if (ph && sm) completeTopic(ph.id, lessonTopic.skillId, sm.id, lessonTopic.topic.id, xp);
+    setLessonTopic(null);
   };
 
   const handleGeneratorAnswer = (value: string) => {
@@ -307,11 +356,16 @@ const RoadmapView: React.FC = () => {
         <SkillModal skill={selectedSkill.skill} color={selectedSkill.color} onClose={() => setSelectedSkill(null)}
           onTopic={(smId, tId) => { const ph = phases.find(p => p.skills.some(s => s.id === selectedSkill.skill.id)); if (ph) handleTopicToggle(ph.id, selectedSkill.skill.id, smId, tId); }}
           onExercise={(smId, exId) => { const ph = phases.find(p => p.skills.some(s => s.id === selectedSkill.skill.id)); if (ph) handleExerciseToggle(ph.id, selectedSkill.skill.id, smId, exId); }}
+          onStudy={(smId, tId) => handleStudy(selectedSkill.skill.id, smId, tId)}
           onQuiz={() => setQuizOpen(true)} />
       )}
 
       {quizOpen && selectedSkill && (
         <QuizModal skillId={selectedSkill.skill.id} skillName={selectedSkill.skill.name} color={selectedSkill.color} onClose={() => setQuizOpen(false)} onPass={(qxp) => setXp(prev => prev + qxp)} />
+      )}
+
+      {lessonTopic && (
+        <LessonModal lesson={lessonTopic.lesson} topicName={lessonTopic.topic.name} color={lessonTopic.color} onClose={() => setLessonTopic(null)} onComplete={handleLessonComplete} />
       )}
 
       {notesOpen && notesTopic && (
