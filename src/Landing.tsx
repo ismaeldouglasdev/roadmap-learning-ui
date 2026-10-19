@@ -3,6 +3,7 @@ import { Icon } from './components/Icon';
 
 interface LandingProps {
   onLogin: () => void;
+  onGuest: () => void;
 }
 
 const features = [
@@ -20,7 +21,7 @@ const phases = [
   { n: 5, name: 'Mestre', color: 'bg-rose-500', skills: 'Domínio total e criação própria' },
 ];
 
-export const Landing: React.FC<LandingProps> = ({ onLogin }) => (
+export const Landing: React.FC<LandingProps> = ({ onLogin, onGuest }) => (
   <div className="min-h-screen bg-indigo-950">
     <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -46,8 +47,11 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => (
         Programação, moda, culinária, negócios — qualquer assunto que você queira dominar. Gere um roadmap gamificado com XP, conquistas e quizzes.
       </p>
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <button onClick={onLogin} className="px-8 py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105">
-          Começar Agora
+        <button onClick={onGuest} className="px-8 py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105">
+          Começar sem conta
+        </button>
+        <button onClick={onLogin} className="px-8 py-4 rounded-2xl border border-cream-200/20 text-cream-200 font-medium hover:bg-cream-200/10 transition-all">
+          Entrar
         </button>
         <a href="#features" className="px-8 py-4 rounded-2xl border border-cream-200/20 text-cream-200 font-medium hover:bg-cream-200/10 transition-all">
           Saiba Mais ↓
@@ -99,7 +103,7 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => (
       <div className="p-10 rounded-3xl bg-indigo-900/30 border border-gold/20">
         <h2 className="font-heading text-3xl font-bold text-cream-200 mb-4">Pronto para começar?</h2>
         <p className="text-cream-400 mb-8 max-w-lg mx-auto">Descreva o assunto que quer dominar e comece sua jornada de aprendizado gamificada hoje.</p>
-        <button onClick={onLogin} className="px-10 py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105">
+        <button onClick={onGuest} className="px-10 py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105">
           Criar Meu Roadmap
         </button>
       </div>

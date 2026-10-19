@@ -1,5 +1,6 @@
 
 import json
+import os
 import sqlite3
 import secrets
 import bcrypt
@@ -13,7 +14,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 # --- Database Setup ---
-DATABASE_URL = "/home/ismaeldev/Desktop/code_study/MeusProjetos/roadmap-ui/server/roadmap.db"
+DATABASE_URL = os.environ.get(
+    "ROADMAP_DB",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "roadmap.db"),
+)
 
 def get_db():
     conn = sqlite3.connect(DATABASE_URL)

@@ -4,17 +4,35 @@ Uma interface interativa estilo Duolingo para acompanhar seu roadmap de aprendiz
 
 ## 🚀 Como Usar
 
-### Opção 1: Arquivo Standalone (Recomendado)
-1. Abra o arquivo `index.standalone.html` no navegador
-2. Pronto! Não precisa de instalação
+### Online (sem instalar nada)
+Acesse: **https://ismaeldouglasdev.github.io/roadmap-learning-ui/**
 
-### Opção 2: Desenvolvimento Local
+Clique em **"Começar sem conta"** e estude na hora. O progresso fica salvo no
+`localStorage` do navegador — não precisa de login nem servidor.
+
+### Desenvolvimento Local
 ```bash
-cd roadmap-ui
-npm install
+npm ci
 npm run dev
 ```
 Acesse: http://localhost:3000
+
+### Build
+```bash
+npm run build        # gera dist/
+npm run build:pages  # gera docs/ (é o que o GitHub Pages publica)
+```
+
+### Modo com conta (opcional)
+Criar conta só serve para sincronizar o progresso entre dispositivos. Requer o
+backend (`server/`), que roda com FastAPI:
+
+```bash
+cd server && ./run.sh   # sobe em http://localhost:8091
+```
+
+Aponte o frontend para o backend com `VITE_API_URL` (padrão: `http://localhost:8091`).
+Sem backend, o app funciona normalmente em modo convidado.
 
 ## 🎯 Funcionalidades
 
@@ -38,8 +56,9 @@ Acesse: http://localhost:3000
 - **Animações**: Transições suaves e micro-interações
 
 ### 💾 Persistência
-- **Salvamento Automático**: Progresso salvo no localStorage
+- **Salvamento Automático**: Progresso salvo no `localStorage` (modo convidado)
 - **Sessão Persistente**: Volte depois e continue de onde parou
+- **Sync opcional**: Com conta, o progresso é sincronizado com o backend
 
 ## 📋 Fases do Roadmap
 
@@ -89,14 +108,24 @@ roadmap-ui/
 ├── DESIGN.md              # Design system
 ├── README.md              # Este arquivo
 ├── index.html             # HTML para Vite
-├── index.standalone.html  # Versão standalone (sem build)
 ├── package.json           # Dependências
-├── vite.config.ts         # Configuração Vite
+├── vite.config.ts         # Configuração Vite (base /roadmap-learning-ui/ em prod)
 ├── tsconfig.json          # Configuração TypeScript
-├── RoadmapApp.tsx         # Componente principal
+├── docs/                  # Build publicado pelo GitHub Pages (gerado por build:pages)
+├── public/                # Assets estáticos (manifest, sw, icons)
+├── server/                # Backend opcional (FastAPI + SQLite)
 └── src/
-    └── main.tsx           # Entry point
+    ├── main.tsx           # Entry point
+    ├── App.tsx            # AppRouter + RoadmapView
+    ├── auth.tsx           # Auth + modo convidado
+    └── data/              # Roadmap, lições, quizzes
 ```
+
+## 🚢 Deploy
+
+GitHub Pages usa o modo **"Deploy from a branch"** com source `master:/docs`.
+O workflow `.github/workflows/deploy.yml` roda `npm run build:pages` e faz
+commit em `docs/` a cada push no `master`, mantendo o site atualizado.
 
 ## 🎨 Customização
 

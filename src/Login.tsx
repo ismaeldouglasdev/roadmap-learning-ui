@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Icon } from './components/Icon';
+import { AuthResult } from './auth';
 
 interface LoginProps {
-  onLogin: (user: string, pass: string) => Promise<boolean>;
-  onRegister: (user: string, pass: string) => Promise<boolean>;
+  onLogin: (user: string, pass: string) => Promise<AuthResult>;
+  onRegister: (user: string, pass: string) => Promise<AuthResult>;
+  onGuest: () => void;
   onBack: () => void;
 }
 
-export const LoginPage: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
+export const LoginPage: React.FC<LoginProps> = ({ onLogin, onRegister, onGuest, onBack }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -18,10 +20,10 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onRegister, onBack })
     e.preventDefault();
     setError('');
     setLoading(true);
-    
-    const ok = isRegister ? await onRegister(username, password) : await onLogin(username, password);
-    if (!ok) {
-      setError(isRegister ? 'Não foi possível criar conta' : 'Usuário ou senha inválidos');
+
+    const result = isRegister ? await onRegister(username, password) : await onLogin(username, password);
+    if (!result.ok) {
+      setError(result.message || (isRegister ? 'Não foi possível criar conta' : 'Usuário ou senha inválidos'));
     }
     setLoading(false);
   };
@@ -102,6 +104,23 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin, onRegister, onBack })
           >
             {isRegister ? 'Já tenho conta' : 'Criar conta'}
           </button>
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-cream-200/10" />
+            <span className="text-xs text-cream-400 uppercase tracking-wide">ou</span>
+            <div className="flex-1 h-px bg-cream-200/10" />
+          </div>
+
+          <button
+            onClick={onGuest}
+            className="w-full py-3 rounded-xl border border-cream-200/20 text-cream-200 font-medium hover:bg-cream-200/10 transition-all flex items-center justify-center gap-2"
+          >
+            <Icon n="lightning" s={18} c="text-gold" />
+            Continuar sem conta
+          </button>
+          <p className="text-center text-xs text-cream-400 mt-2">
+            Estude agora — o progresso fica salvo no seu navegador.
+          </p>
         </div>
 
         <p className="text-center text-cream-400 text-sm mt-6">

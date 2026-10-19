@@ -5,7 +5,7 @@ import { initialAchievements } from './data/achievements';
 import { lessonData } from './data/lessons';
 import { generateLesson } from './features/question-generator';
 import { StoreProvider, useStore } from './store';
-import { AuthProvider, useAuth } from './auth';
+import { AuthProvider, useAuth, AuthResult } from './auth';
 import { Stats } from './components/Stats';
 import { PhaseCard } from './components/PhaseCard';
 import { Badge } from './components/Badge';
@@ -23,7 +23,8 @@ import { LoginPage } from './Login';
 type Page = 'landing' | 'login' | 'roadmap';
 
 const LS_KEY = 'roadmap-progress';
-const BASE_URL = 'http://localhost:8091';
+// Backend opcional de sync. Em modo convidado nunca é chamado (progresso fica local).
+const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8091').replace(/\/$/, '');
 
 const loadProgressLocal = () => { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; } };
 const saveProgressLocal = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[]) => {
@@ -48,7 +49,7 @@ const loadProgressServer = async (token: string | null) => {
 
 const RoadmapView: React.FC = () => {
   const store = useStore();
-  const { user, logout, getToken } = useAuth();
+  const { user, isGuest, logout, getToken } = useAuth();
   const [phases, setPhases] = useState<Phase[]>(initialPhases);
   const [achievements, setAchievements] = useState(initialAchievements);
   const [xp, setXp] = useState(0);
@@ -299,7 +300,10 @@ const RoadmapView: React.FC = () => {
               <Icon n="lightning" s={16} /> Gerar Roadmap
             </button>
             <div className="flex items-center gap-2 pl-2 border-l border-indigo-800/30">
-              <span className="text-sm text-indigo-700">{user}</span>
+              <span className="text-sm text-indigo-700">
+                {user}
+                {isGuest && <span className="ml-1 px-1.5 py-0.5 rounded-md bg-gold/20 text-gold-dark text-xs">local</span>}
+              </span>
               <button onClick={logout} className="p-2 rounded-lg hover:bg-indigo-900/10 transition-colors" title="Sair">
                 <Icon n="x" s={16} c="text-indigo-700" />
               </button>
@@ -404,27 +408,32 @@ const RoadmapView: React.FC = () => {
 };
 
 const AppRouter: React.FC = () => {
-  const { isAuthenticated, login, register } = useAuth();
-  const [page, setPage] = useState<Page>(isAuthenticated ? 'roadmap' : 'landing');
+  const { isAuthenticated, isGuest, login, register, enterGuest } = useAuth();
+  const [page, setPage] = useState<Page>((isAuthenticated || isGuest) ? 'roadmap' : 'landing');
 
   useEffect(() => {
-    setPage(isAuthenticated ? 'roadmap' : 'landing');
-  }, [isAuthenticated]);
+    setPage((isAuthenticated || isGuest) ? 'roadmap' : 'landing');
+  }, [isAuthenticated, isGuest]);
 
-  const handleLogin = async (user: string, pass: string): Promise<boolean> => {
-    const ok = await login(user, pass);
-    if (ok) setPage('roadmap');
-    return ok;
+  const handleLogin = async (user: string, pass: string): Promise<AuthResult> => {
+    const result = await login(user, pass);
+    if (result.ok) setPage('roadmap');
+    return result;
   };
 
-  const handleRegister = async (user: string, pass: string): Promise<boolean> => {
-    const ok = await register(user, pass);
-    if (ok) setPage('roadmap');
-    return ok;
+  const handleRegister = async (user: string, pass: string): Promise<AuthResult> => {
+    const result = await register(user, pass);
+    if (result.ok) setPage('roadmap');
+    return result;
   };
 
-  if (page === 'landing') return <Landing onLogin={() => setPage('login')} />;
-  if (page === 'login') return <LoginPage onLogin={handleLogin} onRegister={handleRegister} onBack={() => setPage('landing')} />;
+  const handleGuest = () => {
+    enterGuest();
+    setPage('roadmap');
+  };
+
+  if (page === 'landing') return <Landing onLogin={() => setPage('login')} onGuest={handleGuest} />;
+  if (page === 'login') return <LoginPage onLogin={handleLogin} onRegister={handleRegister} onGuest={handleGuest} onBack={() => setPage('landing')} />;
 
   return (
     <StoreProvider>

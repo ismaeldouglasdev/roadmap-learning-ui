@@ -1,38 +1,51 @@
 name: Deploy to GitHub Pages
 
+# Pages para este repositório usa "Deploy from a branch": source = master:/docs.
+# Por isso este workflow não publica via actions/deploy-pages (isso conflita com
+# o modo legacy e/ou falha sem o build_type "workflow"). Em vez disso, ele compila
+# a aplicação para docs/ e faz commit — que é exatamente o que o Pages serve.
+
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'docs/**' # o commit de docs/ deste próprio workflow não dispara loop
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: "pages-docs"
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-commit:
+    # Guard extra: nunca roda no commit que o próprio bot acabou de fazer.
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+          cache: 'npm'
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - run: npm ci
+
+      - name: Build into docs/
+        run: npm run build:pages
+
+      - name: Commit and push docs/
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "Nada mudou em docs/ — nada a commitar."
+            exit 0
+          fi
+          git commit -m "build: atualiza docs/ para GitHub Pages [skip ci]"
+          git push
