@@ -23,6 +23,7 @@ import { LoginPage } from './Login';
 type Page = 'landing' | 'login' | 'roadmap';
 
 const LS_KEY = 'roadmap-progress';
+const XP_PER_TOPIC = 5;
 // Backend opcional de sync. Em modo convidado nunca é chamado (progresso fica local).
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8091').replace(/\/$/, '');
 
@@ -190,9 +191,13 @@ const RoadmapView: React.FC = () => {
   }, [phases]);
 
   const handleTopicToggle = (phaseId: string, skillId: string, subModId: string, topicId: string) => {
+    const wasCompleted = phases
+      .find(p => p.id === phaseId)?.skills.find(s => s.id === skillId)
+      ?.subModules.find(sm => sm.id === subModId)?.topics.find(t => t.id === topicId)?.completed;
     const toggle = (s: Skill) => ({ ...s, subModules: s.subModules.map(sm => sm.id !== subModId ? sm : { ...sm, topics: sm.topics.map(t => t.id === topicId ? { ...t, completed: !t.completed } : t) }) });
     setPhases(prev => prev.map(ph => ph.id !== phaseId ? ph : { ...ph, skills: ph.skills.map(sk => sk.id !== skillId ? sk : toggle(sk)) }));
     if (selectedSkill && selectedSkill.skill.id === skillId) setSelectedSkill(prev => prev ? { ...prev, skill: toggle(prev.skill) } : null);
+    setXp(prev => Math.max(0, prev + (wasCompleted ? -XP_PER_TOPIC : XP_PER_TOPIC)));
   };
 
   const handleExerciseToggle = (phaseId: string, skillId: string, subModId: string, exerciseId: string) => {
