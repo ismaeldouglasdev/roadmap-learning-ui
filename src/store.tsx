@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 interface StoreState {
   searchQuery: string;
@@ -19,6 +19,23 @@ interface StoreState {
 
 const StoreContext = createContext<StoreState | undefined>(undefined);
 
+const readStored = <T,>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) as T : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writeStored = (key: string, value: unknown) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn(`Não foi possível salvar "${key}" no navegador:`, error);
+  }
+};
+
 export const StoreProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilters, setSearchFilters] = useState({
@@ -26,8 +43,11 @@ export const StoreProvider: React.FC<{children: ReactNode}> = ({ children }) => 
     completion: [] as ('done' | 'not_done')[],
     difficulty: [] as ('easy' | 'medium' | 'hard')[],
   });
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [notes, setNotes] = useState<Record<string, string>>(() => readStored('roadmap-notes', {}));
+  const [favorites, setFavorites] = useState<Set<string>>(() => new Set(readStored<string[]>('roadmap-favorites', [])));
+
+  useEffect(() => { writeStored('roadmap-notes', notes); }, [notes]);
+  useEffect(() => { writeStored('roadmap-favorites', Array.from(favorites)); }, [favorites]);
 
   const toggleFilter = (category: 'type' | 'completion' | 'difficulty', value: string) => {
     setSearchFilters(prev => {
@@ -40,14 +60,12 @@ export const StoreProvider: React.FC<{children: ReactNode}> = ({ children }) => 
 
   const setNote = (topicId: string, text: string) => {
     setNotes(prev => ({ ...prev, [topicId]: text }));
-    localStorage.setItem('roadmap-notes', JSON.stringify({ ...notes, [topicId]: text }));
   };
 
   const toggleFavorite = (topicId: string) => {
     setFavorites(prev => {
       const newSet = new Set(prev);
       if (newSet.has(topicId)) newSet.delete(topicId); else newSet.add(topicId);
-      localStorage.setItem('roadmap-favorites', JSON.stringify(Array.from(newSet)));
       return newSet;
     });
   };
@@ -55,16 +73,7 @@ export const StoreProvider: React.FC<{children: ReactNode}> = ({ children }) => 
   const hydrate = (notesData: Record<string, string>, favoritesData: string[]) => {
     setNotes(notesData);
     setFavorites(new Set(favoritesData));
-    localStorage.setItem('roadmap-notes', JSON.stringify(notesData));
-    localStorage.setItem('roadmap-favorites', JSON.stringify(favoritesData));
   };
-
-  React.useEffect(() => {
-    const storedNotes = localStorage.getItem('roadmap-notes');
-    if (storedNotes) setNotes(JSON.parse(storedNotes));
-    const storedFav = localStorage.getItem('roadmap-favorites');
-    if (storedFav) setFavorites(new Set(JSON.parse(storedFav)));
-  }, []);
 
   return (
     <StoreContext.Provider value={{

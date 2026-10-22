@@ -27,9 +27,32 @@ const XP_PER_TOPIC = 5;
 // Backend opcional de sync. Em modo convidado nunca é chamado (progresso fica local).
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8091').replace(/\/$/, '');
 
-const loadProgressLocal = () => { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; } };
+type StoredProgress = {
+  phases?: Phase[];
+  achievements?: Achievement[];
+  xp?: number;
+  streak?: number;
+  favorites?: string[];
+};
+
+const loadProgressLocal = (): StoredProgress | null => {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed as StoredProgress : null;
+  } catch {
+    return null;
+  }
+};
+
 const saveProgressLocal = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[]) => {
-  localStorage.setItem(LS_KEY, JSON.stringify({ phases: ph, achievements: ach, xp, streak, favorites: favs }));
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ phases: ph, achievements: ach, xp, streak, favorites: favs }));
+  } catch (error) {
+    // Storage cheio ou bloqueado (modo privado): o app segue funcionando em memória.
+    console.warn('Não foi possível salvar o progresso no navegador:', error);
+  }
 };
 
 const loadProgressServer = async (token: string | null) => {
@@ -51,10 +74,18 @@ const loadProgressServer = async (token: string | null) => {
 const RoadmapView: React.FC = () => {
   const store = useStore();
   const { user, isGuest, logout, getToken } = useAuth();
-  const [phases, setPhases] = useState<Phase[]>(initialPhases);
-  const [achievements, setAchievements] = useState(initialAchievements);
-  const [xp, setXp] = useState(0);
-  const [streak, setStreak] = useState(1);
+  // Hidrata do localStorage já na primeira renderização: o estado não pode nascer
+  // com o roadmap padrão, senão o efeito de save sobrescreve o progresso salvo
+  // antes de o load assíncrono terminar (bug de perder tudo ao atualizar a página).
+  const [bootProgress] = useState<StoredProgress | null>(() => loadProgressLocal());
+  const [phases, setPhases] = useState<Phase[]>(() =>
+    Array.isArray(bootProgress?.phases) && bootProgress.phases.length > 0 ? bootProgress.phases : initialPhases
+  );
+  const [achievements, setAchievements] = useState<Achievement[]>(() =>
+    Array.isArray(bootProgress?.achievements) && bootProgress.achievements.length > 0 ? bootProgress.achievements : initialAchievements
+  );
+  const [xp, setXp] = useState(() => (typeof bootProgress?.xp === 'number' ? bootProgress.xp : 0));
+  const [streak, setStreak] = useState(() => (typeof bootProgress?.streak === 'number' ? bootProgress.streak : 1));
   const [expandedPhase, setExpandedPhase] = useState<string | null>('phase-1');
   const [selectedSkill, setSelectedSkill] = useState<{ skill: Skill; color: string } | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
@@ -67,43 +98,44 @@ const RoadmapView: React.FC = () => {
   const [generatorText, setGeneratorText] = useState('');
   const [showFavs, setShowFavs] = useState(false);
 
+  const [hydrated, setHydrated] = useState(false);
   const hasLoadedRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const storeRef = useRef(store);
+  storeRef.current = store;
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
 
   useEffect(() => {
     let cancelled = false;
-    const token = getToken();
+    const token = getTokenRef.current();
 
     const doLoad = async () => {
       const serverData = await loadProgressServer(token);
       if (cancelled) return;
 
-      if (serverData) {
-        if (serverData.phases) setPhases(serverData.phases);
-        if (serverData.achievements) setAchievements(serverData.achievements);
+      const serverPhases = Array.isArray(serverData?.phases) && serverData.phases.length > 0 ? serverData.phases : null;
+
+      if (serverPhases) {
+        setPhases(serverPhases);
+        if (Array.isArray(serverData.achievements) && serverData.achievements.length > 0) setAchievements(serverData.achievements);
         if (typeof serverData.xp === 'number') setXp(serverData.xp);
         if (typeof serverData.streak === 'number') setStreak(serverData.streak);
-        store.hydrate(serverData.notes || {}, serverData.favorites || []);
-      } else {
-        const local = loadProgressLocal();
-        if (local) {
-          setPhases(local.phases);
-          setAchievements(local.achievements);
-          setXp(local.xp);
-          if (local.streak) setStreak(local.streak);
-        }
+        storeRef.current.hydrate(serverData.notes || {}, serverData.favorites || []);
       }
+
       hasLoadedRef.current = true;
+      setHydrated(true);
     };
 
     doLoad();
     return () => { cancelled = true; };
-  }, [getToken, store]);
+  }, []);
 
   useEffect(() => {
     saveProgressLocal(phases, achievements, xp, streak, Array.from(store.favorites));
 
-    if (!hasLoadedRef.current || !getToken()) return;
+    if (!hydrated || !hasLoadedRef.current || !getToken()) return;
 
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
@@ -138,7 +170,7 @@ const RoadmapView: React.FC = () => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [phases, achievements, xp, streak, store.favorites, store.notes, getToken]);
+  }, [phases, achievements, xp, streak, store.favorites, store.notes, getToken, hydrated]);
 
   useEffect(() => {
     const tc = phases.reduce((a, p) => a + p.skills.filter(s => s.completed).length, 0);
