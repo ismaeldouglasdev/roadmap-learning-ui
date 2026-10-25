@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>RoadmapMaster — Crie Roadmaps Personalizados</title>
   <meta name="description" content="Gere roadmaps de aprendizado gamificados para qualquer assunto. XP, conquistas e quizzes.">
   <meta name="theme-color" content="#282B4A">
@@ -12,54 +12,30 @@
   <meta name="apple-mobile-web-app-title" content="RoadmapMaster">
   <link rel="icon" href="/roadmap-learning-ui/icons/icon-192.svg" type="image/svg+xml">
   <link rel="manifest" href="/roadmap-learning-ui/manifest.json">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="RoadmapMaster — Crie Roadmaps Personalizados">
+  <meta property="og:description" content="Gere roadmaps de aprendizado gamificados para qualquer assunto. XP, conquistas e quizzes.">
+  <meta property="og:url" content="https://ismaeldouglasdev.github.io/roadmap-learning-ui/">
+  <meta property="og:image" content="https://ismaeldouglasdev.github.io/roadmap-learning-ui/icons/icon-512.svg">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            indigo: {
-              950: '#282B4A',
-              900: '#33365A',
-              800: '#3E416A',
-              700: '#4A4D7A',
-              600: '#5B5B8A',
-            },
-            cream: {
-              DEFAULT: '#EEEBDA',
-              50: '#FAF9F5',
-              100: '#F5F3EA',
-              200: '#EEEBDA',
-              300: '#E0DCCA',
-              400: '#C9C4AB',
-            },
-            gold: {
-              DEFAULT: '#C9A96E',
-              light: '#D4BA85',
-              dark: '#B8944F',
-            },
-          },
-          fontFamily: {
-            heading: ['Bricolage Grotesque', 'system-ui', 'sans-serif'],
-            body: ['Space Grotesk', 'system-ui', 'sans-serif'],
-          },
-        },
-      },
-    }
+    // Aplica o tema antes da primeira pintura para não piscar a versão clara.
+    (function () {
+      try {
+        var stored = localStorage.getItem('roadmap-theme');
+        var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      } catch (e) {}
+    })();
   </script>
-  <style>
-    * {
-      font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6 {
-      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-    }
-  </style>
-  <script type="module" crossorigin src="/roadmap-learning-ui/assets/index-B4T6adj3.js"></script>
+  <script type="module" crossorigin src="/roadmap-learning-ui/assets/index-B0FATJHy.js"></script>
+  <link rel="modulepreload" crossorigin href="/roadmap-learning-ui/assets/vendor-ebxS2RN4.js">
+  <link rel="modulepreload" crossorigin href="/roadmap-learning-ui/assets/data-CNOpS1Mh.js">
+  <link rel="stylesheet" crossorigin href="/roadmap-learning-ui/assets/index-nfI0QhKe.css">
 </head>
 <body class="bg-cream-200 dark:bg-indigo-950">
   <div id="root"></div>
