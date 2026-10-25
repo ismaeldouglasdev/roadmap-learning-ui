@@ -132,12 +132,17 @@ const RoadmapView: React.FC = () => {
         }
         if (serverData.achievements) setAchievements(serverData.achievements);
         if (typeof serverData.xp === 'number') setXp(serverData.xp);
-        if (typeof serverData.streak === 'number') setStreak(serverData.streak);
         if ((serverData as any).lastStreakDate) {
           setLastStreakDate((serverData as any).lastStreakDate);
+          if (typeof serverData.streak === 'number') setStreak(serverData.streak);
         } else if (typeof serverData.streak === 'number' && serverData.streak > 0) {
-          const daysAgo = new Date(Date.now() - (serverData.streak - 1) * 86400000).toISOString().split('T')[0];
-          setLastStreakDate(daysAgo);
+          // Ajuste: considera como estudado ontem com 4 dias seguidos
+          const targetStreak = serverData.streak === 1 ? 4 : serverData.streak;
+          const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+          setStreak(targetStreak);
+          setLastStreakDate(yesterday);
+        } else if (typeof serverData.streak === 'number') {
+          setStreak(serverData.streak);
         }
         hydrate(serverData.notes || {}, serverData.favorites || []);
       } else {
@@ -147,12 +152,16 @@ const RoadmapView: React.FC = () => {
           setPhases(local.phases);
           setAchievements(local.achievements);
           setXp(local.xp);
-          if (local.streak) setStreak(local.streak);
           if ((local as any).lastStreakDate) {
             setLastStreakDate((local as any).lastStreakDate);
+            if (local.streak) setStreak(local.streak);
           } else if (local.streak && local.streak > 0) {
-            const daysAgo = new Date(Date.now() - (local.streak - 1) * 86400000).toISOString().split('T')[0];
-            setLastStreakDate(daysAgo);
+            const targetStreak = local.streak === 1 ? 4 : local.streak;
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            setStreak(targetStreak);
+            setLastStreakDate(yesterday);
+          } else if (local.streak) {
+            setStreak(local.streak);
           }
         }
       }
