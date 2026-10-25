@@ -12,6 +12,7 @@ import { Badge } from './components/Badge';
 import { SkillModal } from './components/SkillModal';
 import { QuizModal } from './components/QuizModal';
 import { LessonModal } from './components/LessonModal';
+import { Modal } from './components/Modal';
 import { SearchBar } from './features/search/SearchBar';
 import { NotesPanel } from './features/notes/NotesPanel';
 import { Icon } from './components/Icon';
@@ -19,6 +20,9 @@ import { questionnaire, QuestionnaireAnswers } from './features/ai-generator/que
 import { generateRoadmap } from './features/ai-generator/generator';
 import { Landing } from './Landing';
 import { LoginPage } from './Login';
+import { readJson, writeJson } from './lib/storage';
+import { updateStreak } from './streak';
+import { useTheme } from './lib/theme';
 
 type Page = 'landing' | 'login' | 'roadmap';
 
@@ -27,12 +31,42 @@ const XP_PER_TOPIC = 5;
 // Backend opcional de sync. Em modo convidado nunca é chamado (progresso fica local).
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8091').replace(/\/$/, '');
 
-const loadProgressLocal = () => { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; } };
-const saveProgressLocal = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[]) => {
-  localStorage.setItem(LS_KEY, JSON.stringify({ phases: ph, achievements: ach, xp, streak, favorites: favs }));
+interface SavedProgress {
+  phases: Phase[];
+  achievements: Achievement[];
+  xp: number;
+  streak: number;
+  lastStreakDate?: string;
+  favorites: string[];
+}
+
+interface ServerProgress {
+  phases?: Phase[];
+  achievements?: Achievement[];
+  xp?: number;
+  streak?: number;
+  favorites?: string[];
+  notes?: Record<string, string>;
+}
+
+const isSavedProgress = (value: unknown): value is SavedProgress =>
+  typeof value === 'object' &&
+  value !== null &&
+  Array.isArray((value as SavedProgress).phases) &&
+  Array.isArray((value as SavedProgress).achievements);
+
+// Leitura blindada: localStorage corrompido devolve `null` em vez de derrubar o app.
+const loadProgressLocal = (): SavedProgress | null => {
+  const parsed = readJson<unknown>(LS_KEY, null);
+  return isSavedProgress(parsed) ? parsed : null;
 };
 
-const loadProgressServer = async (token: string | null) => {
+const saveProgressLocal = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[], lastStreakDate?: string) => {
+  // Cota estourada não pode derrubar o app — a sessão segue funcionando.
+  writeJson(LS_KEY, { phases: ph, achievements: ach, xp, streak, lastStreakDate, favorites: favs });
+};
+
+const loadProgressServer = async (token: string | null): Promise<ServerProgress | null> => {
   if (!token) return null;
   try {
     const response = await fetch(`${BASE_URL}/api/progress`, {
@@ -40,7 +74,8 @@ const loadProgressServer = async (token: string | null) => {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.progress;
+      const progress = data?.progress;
+      return progress && typeof progress === 'object' ? (progress as ServerProgress) : null;
     }
   } catch (error) {
     console.error('Failed to load progress from server:', error);
@@ -50,11 +85,14 @@ const loadProgressServer = async (token: string | null) => {
 
 const RoadmapView: React.FC = () => {
   const store = useStore();
+  const { hydrate } = store;
   const { user, isGuest, logout, getToken } = useAuth();
+  const { isDark, toggle: toggleTheme } = useTheme();
   const [phases, setPhases] = useState<Phase[]>(initialPhases);
   const [achievements, setAchievements] = useState(initialAchievements);
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState(1);
+  const [lastStreakDate, setLastStreakDate] = useState<string | null>(null);
   const [expandedPhase, setExpandedPhase] = useState<string | null>('phase-1');
   const [selectedSkill, setSelectedSkill] = useState<{ skill: Skill; color: string } | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
@@ -69,6 +107,9 @@ const RoadmapView: React.FC = () => {
 
   const hasLoadedRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Skills cujo bônus de XP já foi creditado: evita pagar o bônus de novo ao
+  // recarregar a página ou quando o efeito de conclusão roda outra vez.
+  const awardedSkillsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -78,19 +119,41 @@ const RoadmapView: React.FC = () => {
       const serverData = await loadProgressServer(token);
       if (cancelled) return;
 
+      const markAwarded = (loaded: Phase[]) => {
+        awardedSkillsRef.current = new Set(
+          loaded.flatMap(p => p.skills).filter(sk => sk.completed).map(sk => sk.id),
+        );
+      };
+
       if (serverData) {
-        if (serverData.phases) setPhases(serverData.phases);
+        if (serverData.phases) {
+          markAwarded(serverData.phases);
+          setPhases(serverData.phases);
+        }
         if (serverData.achievements) setAchievements(serverData.achievements);
         if (typeof serverData.xp === 'number') setXp(serverData.xp);
         if (typeof serverData.streak === 'number') setStreak(serverData.streak);
-        store.hydrate(serverData.notes || {}, serverData.favorites || []);
+        if ((serverData as any).lastStreakDate) {
+          setLastStreakDate((serverData as any).lastStreakDate);
+        } else if (typeof serverData.streak === 'number' && serverData.streak > 0) {
+          const daysAgo = new Date(Date.now() - (serverData.streak - 1) * 86400000).toISOString().split('T')[0];
+          setLastStreakDate(daysAgo);
+        }
+        hydrate(serverData.notes || {}, serverData.favorites || []);
       } else {
         const local = loadProgressLocal();
         if (local) {
+          markAwarded(local.phases);
           setPhases(local.phases);
           setAchievements(local.achievements);
           setXp(local.xp);
           if (local.streak) setStreak(local.streak);
+          if ((local as any).lastStreakDate) {
+            setLastStreakDate((local as any).lastStreakDate);
+          } else if (local.streak && local.streak > 0) {
+            const daysAgo = new Date(Date.now() - (local.streak - 1) * 86400000).toISOString().split('T')[0];
+            setLastStreakDate(daysAgo);
+          }
         }
       }
       hasLoadedRef.current = true;
@@ -98,10 +161,13 @@ const RoadmapView: React.FC = () => {
 
     doLoad();
     return () => { cancelled = true; };
-  }, [getToken, store]);
+    // `hydrate` é estável (useCallback) e `getToken` só muda em transições de
+    // autenticação — antes, `store` no array fazia este efeito rodar a cada
+    // tecla digitada na busca, sobrescrevendo o estado do usuário.
+  }, [getToken, hydrate]);
 
   useEffect(() => {
-    saveProgressLocal(phases, achievements, xp, streak, Array.from(store.favorites));
+    saveProgressLocal(phases, achievements, xp, streak, Array.from(store.favorites), lastStreakDate || undefined);
 
     if (!hasLoadedRef.current || !getToken()) return;
 
@@ -117,6 +183,7 @@ const RoadmapView: React.FC = () => {
           achievements,
           xp,
           streak,
+          lastStreakDate,
           favorites: Array.from(store.favorites),
           notes: store.notes,
           updatedAt: new Date().toISOString(),
@@ -138,7 +205,7 @@ const RoadmapView: React.FC = () => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [phases, achievements, xp, streak, store.favorites, store.notes, getToken]);
+  }, [phases, achievements, xp, streak, lastStreakDate, store.favorites, store.notes, getToken]);
 
   useEffect(() => {
     const tc = phases.reduce((a, p) => a + p.skills.filter(s => s.completed).length, 0);
@@ -166,12 +233,15 @@ const RoadmapView: React.FC = () => {
   }, [phases]);
 
   useEffect(() => {
-    const xpToAdd = phases.reduce((acc, ph) =>
-      acc + ph.skills.reduce((a, sk) => {
-        const allDone = sk.subModules.every(sm => sm.topics.every(t => t.completed));
-        return allDone && !sk.completed ? a + sk.xp : a;
-      }, 0), 0);
-    if (xpToAdd > 0) setXp(prev => prev + xpToAdd);
+    const newlyCompleted = phases.flatMap(p => p.skills).filter(sk => {
+      const allDone = sk.subModules.every(sm => sm.topics.every(t => t.completed));
+      return allDone && !sk.completed && !awardedSkillsRef.current.has(sk.id);
+    });
+
+    if (newlyCompleted.length > 0) {
+      newlyCompleted.forEach(sk => awardedSkillsRef.current.add(sk.id));
+      setXp(prev => prev + newlyCompleted.reduce((acc, sk) => acc + sk.xp, 0));
+    }
 
     setPhases(p => {
       let changed = false;
@@ -198,6 +268,11 @@ const RoadmapView: React.FC = () => {
     setPhases(prev => prev.map(ph => ph.id !== phaseId ? ph : { ...ph, skills: ph.skills.map(sk => sk.id !== skillId ? sk : toggle(sk)) }));
     if (selectedSkill && selectedSkill.skill.id === skillId) setSelectedSkill(prev => prev ? { ...prev, skill: toggle(prev.skill) } : null);
     setXp(prev => Math.max(0, prev + (wasCompleted ? -XP_PER_TOPIC : XP_PER_TOPIC)));
+    if (!wasCompleted) {
+      const result = updateStreak(streak, lastStreakDate);
+      setStreak(result.streak);
+      setLastStreakDate(result.lastDate);
+    }
   };
 
   const handleExerciseToggle = (phaseId: string, skillId: string, subModId: string, exerciseId: string) => {
@@ -231,7 +306,12 @@ const RoadmapView: React.FC = () => {
     const complete = (s: Skill) => ({ ...s, subModules: s.subModules.map(sm => sm.id !== subModId ? sm : { ...sm, topics: sm.topics.map(t => t.id === topicId ? { ...t, completed: true } : t) }) });
     setPhases(prev => prev.map(ph => ph.id !== phaseId ? ph : { ...ph, skills: ph.skills.map(sk => sk.id !== skillId ? sk : complete(sk)) }));
     if (selectedSkill && selectedSkill.skill.id === skillId) setSelectedSkill(prev => prev ? { ...prev, skill: complete(prev.skill) } : null);
-    if (!wasCompleted && xpAward > 0) setXp(prev => prev + xpAward);
+    if (!wasCompleted && xpAward > 0) {
+      setXp(prev => prev + xpAward);
+      const result = updateStreak(streak, lastStreakDate);
+      setStreak(result.streak);
+      setLastStreakDate(result.lastDate);
+    }
   };
 
   const handleLessonComplete = (xp: number) => {
@@ -265,6 +345,13 @@ const RoadmapView: React.FC = () => {
     }
   };
 
+  const closeGenerator = () => {
+    setShowGenerator(false);
+    setGeneratorStep(0);
+    setGeneratorAnswers({});
+    setGeneratorText('');
+  };
+
   const allTopics = useMemo(() => {
     const topics: Array<{ name: string; type: string; completed: boolean; phaseId: string; skillId: string; subModId: string; topicId: string }> = [];
     phases.forEach(ph => ph.skills.forEach(sk => sk.subModules.forEach(sm => sm.topics.forEach(t => {
@@ -293,24 +380,36 @@ const RoadmapView: React.FC = () => {
   const currentStep = questionnaire[generatorStep];
 
   return (
-    <div className="min-h-screen bg-cream-200">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-3xl md:text-4xl font-bold text-indigo-950 mb-1">Meu Roadmap</h1>
-            <p className="text-indigo-700 text-sm">Clique num tópico para ver detalhes. Marque concluídos para ganhar XP!</p>
+    <div className="min-h-[100dvh] bg-cream-200 dark:bg-indigo-950">
+      <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold text-indigo-950 dark:text-cream-100 mb-1">Meu Roadmap</h1>
+            <p className="text-indigo-700 dark:text-cream-400 text-xs sm:text-sm">Clique num tópico para ver detalhes. Marque concluídos para ganhar XP!</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowGenerator(true)} className="px-3 py-2 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-cream-200 text-sm font-medium flex items-center gap-2 transition-colors">
-              <Icon n="lightning" s={16} /> Gerar Roadmap
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-indigo-900/10 dark:hover:bg-cream-200/10 transition-colors" title={isDark ? 'Modo claro' : 'Modo escuro'} aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}>
+              {isDark ? (
+                <svg className="w-4 h-4 text-indigo-700 dark:text-cream-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="4" />
+                  <path strokeLinecap="round" d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4l1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-indigo-700 dark:text-cream-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" />
+                </svg>
+              )}
             </button>
-            <div className="flex items-center gap-2 pl-2 border-l border-indigo-800/30">
-              <span className="text-sm text-indigo-700">
+            <button onClick={() => setShowGenerator(true)} aria-label="Gerar Roadmap" className="px-2.5 sm:px-3 py-2 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-cream-200 text-sm font-medium flex items-center gap-2 transition-colors motion-reduce:transition-none">
+              <Icon n="lightning" s={16} /> <span className="hidden sm:inline">Gerar Roadmap</span>
+            </button>
+            <div className="flex items-center gap-2 pl-2 border-l border-indigo-800/30 dark:border-cream-200/20 min-w-0">
+              <span className="text-sm text-indigo-700 dark:text-cream-300 truncate max-w-[8rem] sm:max-w-none">
                 {user}
                 {isGuest && <span className="ml-1 px-1.5 py-0.5 rounded-md bg-gold/20 text-gold-dark text-xs">local</span>}
               </span>
-              <button onClick={logout} className="p-2 rounded-lg hover:bg-indigo-900/10 transition-colors" title="Sair">
-                <Icon n="x" s={16} c="text-indigo-700" />
+              <button onClick={logout} className="p-2 -mr-2 rounded-lg hover:bg-indigo-900/10 dark:hover:bg-cream-200/10 transition-colors flex-shrink-0" title="Sair" aria-label="Sair">
+                <Icon n="x" s={16} c="text-indigo-700 dark:text-cream-300" />
               </button>
             </div>
           </div>
@@ -320,13 +419,13 @@ const RoadmapView: React.FC = () => {
 
         {searchFiltered ? (
           <div className="mt-6 space-y-2">
-            <h2 className="font-heading text-lg font-bold text-indigo-950 mb-3">Resultados da busca ({searchFiltered.length})</h2>
+            <h2 className="font-heading text-lg font-bold text-indigo-950 dark:text-cream-100 mb-3">Resultados da busca ({searchFiltered.length})</h2>
             {searchFiltered.map(t => (
               <button key={`${t.phaseId}-${t.skillId}-${t.topicId}`} onClick={() => { const sk = phases.flatMap(p => p.skills).find(s => s.id === t.skillId); if (sk) openSkill(sk); }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white border border-indigo-900/10 hover:border-gold transition-colors text-left">
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-indigo-900/60 border border-indigo-900/10 dark:border-cream-200/10 hover:border-gold transition-colors text-left">
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.completed ? 'bg-emerald-500' : 'bg-indigo-300'}`} />
-                <span className="text-sm text-indigo-950 flex-1">{t.name}</span>
-                <span className="text-xs text-indigo-600">{t.type}</span>
+                <span className="text-sm text-indigo-950 dark:text-cream-100 flex-1">{t.name}</span>
+                <span className="text-xs text-indigo-600 dark:text-cream-400">{t.type}</span>
               </button>
             ))}
           </div>
@@ -335,16 +434,16 @@ const RoadmapView: React.FC = () => {
             <div className="mt-6 mb-6"><Stats xp={xp} streak={streak} /></div>
 
             <div className="mb-4 flex items-center gap-3">
-              <button onClick={() => setShowFavs(false)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!showFavs ? 'bg-indigo-950 text-cream-200' : 'text-indigo-700 hover:bg-indigo-900/10'}`}>Todos</button>
-              <button onClick={() => setShowFavs(true)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${showFavs ? 'bg-gold/20 text-gold-dark' : 'text-indigo-700 hover:bg-indigo-900/10'}`}><Icon n="star" s={14} /> Favoritos</button>
+              <button onClick={() => setShowFavs(false)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!showFavs ? 'bg-indigo-950 text-cream-200' : 'text-indigo-700 dark:text-cream-300 hover:bg-indigo-900/10 dark:hover:bg-cream-200/10'}`}>Todos</button>
+              <button onClick={() => setShowFavs(true)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${showFavs ? 'bg-gold/20 text-gold-dark' : 'text-indigo-700 dark:text-cream-300 hover:bg-indigo-900/10 dark:hover:bg-cream-200/10'}`}><Icon n="star" s={14} /> Favoritos</button>
             </div>
 
             <div className="mb-8 relative">
-              <div className="absolute left-7 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-sky-500 to-violet-500 rounded-full" />
+              <div className="absolute left-[18px] sm:left-7 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-sky-500 to-violet-500 rounded-full" />
               <div className="space-y-4">
                 {filteredPhases.map(ph => (
-                  <div key={ph.id} className="relative pl-16">
-                    <div className={`absolute left-4 w-7 h-7 rounded-full border-4 border-cream-200 ${ph.unlocked ? 'bg-emerald-500' : 'bg-indigo-300'}`} style={{ top: 20 }} />
+                  <div key={ph.id} className="relative pl-11 sm:pl-16">
+                    <div className={`absolute left-1.5 sm:left-4 top-4 sm:top-5 w-7 h-7 rounded-full border-4 border-cream-200 dark:border-indigo-950 ${ph.unlocked ? 'bg-emerald-500' : 'bg-indigo-300'}`} />
                     <PhaseCard phase={ph} expanded={expandedPhase === ph.id} onToggle={() => setExpandedPhase(expandedPhase === ph.id ? null : ph.id)} onSkillClick={openSkill} />
                   </div>
                 ))}
@@ -352,13 +451,13 @@ const RoadmapView: React.FC = () => {
             </div>
 
             <div className="mb-8">
-              <h2 className="font-heading text-xl font-bold text-indigo-950 mb-4">Conquistas</h2>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">{achievements.map(a => <Badge key={a.id} a={a} />)}</div>
+              <h2 className="font-heading text-xl font-bold text-indigo-950 dark:text-cream-100 mb-4">Conquistas</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">{achievements.map(a => <Badge key={a.id} a={a} />)}</div>
             </div>
           </>
         )}
 
-        <div className="text-center text-sm text-indigo-700 mt-8">Desenvolvido por Ismael Douglas</div>
+        <div className="text-center text-sm text-indigo-700 dark:text-cream-400 mt-8">Desenvolvido por Ismael Douglas</div>
       </div>
 
       {selectedSkill && (
@@ -381,33 +480,43 @@ const RoadmapView: React.FC = () => {
         <NotesPanel topicId={notesTopic.id} topicName={notesTopic.name} topicUrl={notesTopic.url} onClose={() => { setNotesOpen(false); setNotesTopic(null); }} />
       )}
 
-      {showGenerator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-indigo-950/80 backdrop-blur-sm" onClick={() => setShowGenerator(false)}>
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-indigo-900/10 flex items-center justify-between">
-              <h3 className="font-heading font-bold text-indigo-950">Gerar Roadmap com IA</h3>
-              <button onClick={() => setShowGenerator(false)} className="p-1.5 rounded-lg hover:bg-indigo-900/10"><Icon n="x" s={18} c="text-indigo-700" /></button>
+      <Modal
+        isOpen={showGenerator}
+        onClose={closeGenerator}
+        title="Gerar Roadmap com IA"
+        panelClassName="max-w-md"
+        bodyClassName="p-0"
+        header={
+          <div className="flex-none p-4 border-b border-indigo-900/10 dark:border-cream-200/10">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-heading font-bold text-indigo-950 dark:text-cream-100 truncate">Gerar Roadmap com IA</h3>
+              <button onClick={closeGenerator} aria-label="Fechar gerador" className="p-2 -m-1 rounded-lg hover:bg-indigo-900/10 dark:hover:bg-cream-200/10 transition-colors motion-reduce:transition-none flex-shrink-0">
+                <Icon n="x" s={18} c="text-indigo-700 dark:text-cream-300" />
+              </button>
             </div>
-            <div className="p-1"><div className="h-1 bg-indigo-100 rounded-full mx-4"><div className="h-1 bg-gold rounded-full transition-all" style={{ width: `${((generatorStep + 1) / questionnaire.length) * 100}%` }} /></div></div>
-            <div className="p-6">
-              <p className="text-sm text-indigo-600 mb-1">Pergunta {generatorStep + 1} de {questionnaire.length}</p>
-              <p className="text-lg font-medium text-indigo-950 mb-4">{currentStep.label}</p>
-              {currentStep.type === 'text' ? (
-                <div>
-                  <input type="text" value={generatorText} onChange={e => setGeneratorText(e.target.value)} placeholder={currentStep.placeholder} className="w-full px-4 py-2.5 rounded-xl border border-indigo-900/20 bg-cream-50 text-indigo-950" autoFocus onKeyDown={e => { if (e.key === 'Enter' && generatorText.trim()) handleGeneratorAnswer(generatorText.trim()); }} />
-                  <button onClick={() => { if (generatorText.trim()) handleGeneratorAnswer(generatorText.trim()); }} disabled={!generatorText.trim()} className="mt-3 w-full py-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-cream-200 font-semibold disabled:opacity-50 transition-colors">Proximo</button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {currentStep.options?.map(opt => (
-                    <button key={opt} onClick={() => handleGeneratorAnswer(opt)} className="w-full p-3 rounded-xl border border-indigo-900/20 text-left text-sm text-indigo-950 hover:border-gold hover:bg-gold/10 transition-colors">{opt}</button>
-                  ))}
-                </div>
-              )}
+            <div className="mt-3 h-1 bg-indigo-100 dark:bg-indigo-950 rounded-full overflow-hidden">
+              <div className="h-1 bg-gold rounded-full transition-all duration-300 motion-reduce:transition-none" style={{ width: `${((generatorStep + 1) / questionnaire.length) * 100}%` }} />
             </div>
           </div>
+        }
+      >
+        <div className="p-5 sm:p-6">
+          <p className="text-sm text-indigo-600 dark:text-cream-400 mb-1">Pergunta {generatorStep + 1} de {questionnaire.length}</p>
+          <p className="text-lg font-medium text-indigo-950 dark:text-cream-100 mb-4">{currentStep.label}</p>
+          {currentStep.type === 'text' ? (
+            <div>
+              <input type="text" value={generatorText} onChange={e => setGeneratorText(e.target.value)} placeholder={currentStep.placeholder} aria-label={currentStep.label} className="w-full px-4 py-2.5 rounded-xl border border-indigo-900/20 dark:border-cream-200/20 bg-cream-50 dark:bg-indigo-950 text-indigo-950 dark:text-cream-100" autoFocus onKeyDown={e => { if (e.key === 'Enter' && generatorText.trim()) handleGeneratorAnswer(generatorText.trim()); }} />
+              <button onClick={() => { if (generatorText.trim()) handleGeneratorAnswer(generatorText.trim()); }} disabled={!generatorText.trim()} className="mt-3 w-full py-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-cream-200 font-semibold disabled:opacity-50 transition-colors">Próximo</button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {currentStep.options?.map(opt => (
+                <button key={opt} onClick={() => handleGeneratorAnswer(opt)} className="w-full p-3 rounded-xl border border-indigo-900/20 dark:border-cream-200/20 text-left text-sm text-indigo-950 dark:text-cream-100 hover:border-gold hover:bg-gold/10 transition-colors motion-reduce:transition-none">{opt}</button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

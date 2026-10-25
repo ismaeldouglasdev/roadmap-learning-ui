@@ -28,5 +28,5 @@ export const Icon: React.FC<{n:string;s?:number;c?:string}> = ({n,s=24,c=''}) =>
     x:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
     arrowLeft:<polyline points="15 18 9 12 15 6"/>,
   };
-  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={c}>{d[n]}</svg>;
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={c} aria-hidden="true" focusable="false">{d[n]}</svg>;
 };

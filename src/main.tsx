@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -8,12 +9,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 
-// Unregister any old service workers to prevent stale cache
+// O service worker dá suporte offline. O registro usa BASE_URL porque a app
+// é publicada em um subpath (/roadmap-learning-ui/) — registrar na raiz
+// quebraria o escopo e o app ficaria sem cache offline.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(r => r.unregister());
+    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+    navigator.serviceWorker.register(swUrl, { scope: import.meta.env.BASE_URL }).catch((error) => {
+      console.error('Falha ao registrar o service worker:', error);
     });
-    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   });
 }

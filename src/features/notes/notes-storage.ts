@@ -1,39 +1,58 @@
-// Notes storage with localStorage persistence
+import { readJson, writeJson } from '../../lib/storage';
+
+/**
+ * Armazenamento de anotações por tópico.
+ *
+ * Schema canônico: um mapa plano `{ [topicId]: texto }` gravado diretamente
+ * sob a chave `roadmap-notes`. Este módulo é a ÚNICA porta de entrada para
+ * essa chave — evita que dois formatos incompatíveis sejam gravados na mesma
+ * chave e corrompam as notas.
+ */
 const STORAGE_KEY = 'roadmap-notes';
 
-export interface NotesStorage {
-  notes: Record<string, string>;
-}
+export type NotesMap = Record<string, string>;
 
-export function loadNotes(): NotesStorage {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { notes: {} };
-    return JSON.parse(raw);
-  } catch {
-    return { notes: {} };
+const isNotesMap = (value: unknown): value is NotesMap =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.values(value as Record<string, unknown>).every(item => typeof item === 'string');
+
+/** Carrega as notas. Valores corrompidos ou de formato antigo viram mapa vazio. */
+export function loadNotes(): NotesMap {
+  const parsed = readJson<unknown>(STORAGE_KEY, null);
+  if (!parsed || typeof parsed !== 'object') return {};
+
+  // Migração: versões antigas guardavam `{ notes: { ... } }` aninhado.
+  if ('notes' in parsed) {
+    const nested = (parsed as { notes: unknown }).notes;
+    if (isNotesMap(nested)) return nested;
   }
+
+  return isNotesMap(parsed) ? parsed : {};
 }
 
-export function saveNotes(storage: NotesStorage): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
-  } catch {
-    // localStorage unavailable or quota exceeded — silently fail
-  }
+/** Grava as notas. Falhas de cota são silenciosas (a sessão segue em memória). */
+export function saveNotes(notes: NotesMap): void {
+  writeJson(STORAGE_KEY, notes);
 }
 
-export function getNote(topicId: string, storage: NotesStorage): string {
-  return storage.notes[topicId] ?? '';
+/**
+ * Combina notas do servidor com as locais sem perder nenhuma das duas.
+ * Em conflito, o local vence: ele representa a edição mais recente.
+ */
+export function mergeNotes(local: NotesMap, incoming: NotesMap): NotesMap {
+  return { ...incoming, ...local };
 }
 
-export function setNote(topicId: string, text: string, storage: NotesStorage): NotesStorage {
-  const next: NotesStorage = { notes: { ...storage.notes, [topicId]: text } };
-  saveNotes(next);
-  return next;
+export function getNote(topicId: string, notes: NotesMap): string {
+  return notes[topicId] ?? '';
 }
 
-export function hasNote(topicId: string, storage: NotesStorage): boolean {
-  const note = storage.notes[topicId];
-  return typeof note === 'string' && note.trim().length > 0;
+export function setNote(topicId: string, text: string, notes: NotesMap): NotesMap {
+  return { ...notes, [topicId]: text };
+}
+
+export function hasNote(topicId: string, notes: NotesMap): boolean {
+  return getNote(topicId, notes).trim().length > 0;
 }

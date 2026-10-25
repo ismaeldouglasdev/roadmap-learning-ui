@@ -1,21 +1,23 @@
-# 🎮 Roadmap de Desenvolvimento - UI Gamificada
+# 🎮 RoadmapMaster — Roadmaps gamificados de aprendizado
 
-Uma interface interativa estilo Duolingo para acompanhar seu roadmap de aprendizado.
+Interface interativa estilo Duolingo para acompanhar um roadmap de estudo, com XP,
+conquistas, quizzes, lições e notas. Funciona 100% no navegador, sem conta e sem servidor.
 
-## 🚀 Como Usar
+**Site:** https://ismaeldouglasdev.github.io/roadmap-learning-ui/
 
-### Online (sem instalar nada)
-Acesse: **https://ismaeldouglasdev.github.io/roadmap-learning-ui/**
+---
 
-Clique em **"Começar sem conta"** e estude na hora. O progresso fica salvo no
-`localStorage` do navegador — não precisa de login nem servidor.
+## 🚀 Como usar
 
-### Desenvolvimento Local
+### Online
+Acesse o link acima e clique em **"Começar sem conta"**. O progresso fica salvo no
+`localStorage` do navegador — não precisa de login, cadastro nem backend.
+
+### Desenvolvimento local
 ```bash
 npm ci
-npm run dev
+npm run dev        # http://localhost:3000
 ```
-Acesse: http://localhost:3000
 
 ### Build
 ```bash
@@ -24,8 +26,8 @@ npm run build:pages  # gera docs/ (é o que o GitHub Pages publica)
 ```
 
 ### Modo com conta (opcional)
-Criar conta só serve para sincronizar o progresso entre dispositivos. Requer o
-backend (`server/`), que roda com FastAPI:
+Criar conta só serve para sincronizar o progresso entre dispositivos. Requer o backend
+opcional em `server/` (FastAPI + SQLite):
 
 ```bash
 cd server && ./run.sh   # sobe em http://localhost:8091
@@ -34,160 +36,141 @@ cd server && ./run.sh   # sobe em http://localhost:8091
 Aponte o frontend para o backend com `VITE_API_URL` (padrão: `http://localhost:8091`).
 Sem backend, o app funciona normalmente em modo convidado.
 
+---
+
 ## 🎯 Funcionalidades
 
-### 📊 Sistema de Progresso
-- **XP (Experiência)**: Ganhe XP completando skills
-- **Nível**: Suba de nível a cada 200 XP
-- **Sequência**: Mantenha sua sequência de estudos
+### 📊 Progresso e gamificação
+- **XP**: +5 XP por tópico concluído (desmarcar devolve os XP).
+- **Conquistas**: 9 badges desbloqueados por progresso.
+- **Sequência**: contador de dias de estudo.
+- **Notas**: anotações por tópico, salvas localmente e sincronizadas com a conta.
 
-### 🏆 Conquistas
-- **Primeiro Passo**: Complete sua primeira skill
-- **Fase Concluída**: Complete todas as skills de uma fase
-- **500 XP**: Acumule 500 XP
-- **1000 XP**: Acumule 1000 XP
-- **Sequência de 7**: Estude 7 dias seguidos
-- **Mestre**: Desbloqueie todas as fases
+### 🧠 Conteúdo
+- **7 fases** com skills, submódulos e tópicos (docs, vídeos, cursos, exercícios).
+- **Quizzes** com pontuação e nota 10.
+- **Lições** geradas a partir de um gerador de questões.
+- **Gerador de roadmap por IA**: descreva o assunto e monte um plano personalizado.
 
-### 🎨 Design
-- **Estilo Duolingo**: Visual gamificado e motivador
-- **Modo Escuro**: Suporte a tema claro e escuro
-- **Responsivo**: Funciona em desktop e mobile
-- **Animações**: Transições suaves e micro-interações
+### 🎨 Interface
+- Visual gamificado com micro-interações e transições suaves.
+- **Modo claro e escuro** (toggle no topo, respeita `prefers-color-scheme` e persiste a escolha).
+- **Responsivo**: funciona em celular, tablet e desktop.
+- **Acessível**: modais com `role="dialog"`, foco preso, `aria-*` nos indicadores de
+  progresso e navegação por teclado.
+- **PWA**: service worker com cache offline e manifest para instalação.
 
-### 💾 Persistência
-- **Salvamento Automático**: Progresso salvo no `localStorage` (modo convidado)
-- **Sessão Persistente**: Volte depois e continue de onde parou
-- **Sync opcional**: Com conta, o progresso é sincronizado com o backend
+---
 
-## 📋 Fases do Roadmap
+## 📋 Fases do roadmap
 
-### Fase 1: Fundamentos
-- Python Avançado (+150 XP)
-- TypeScript Moderno (+120 XP)
-- Git Avançado (+80 XP)
-- Testing (+100 XP)
+| # | Fase | Conteúdo |
+|---|------|----------|
+| 1 | Fundamentos | Python, TypeScript & Git |
+| 2 | Infraestrutura | Docker, Cloud & Terraform |
+| 3 | Data Engineering | PostgreSQL, Airflow & Analytics |
+| 4 | Machine Learning | Scikit-learn, NLP & LLM |
+| 5 | DevOps | Kubernetes, CI/CD & Observability |
+| 6 | Soft Skills | Product, Sales & Communication |
+| 7 | Cybersecurity | Pentest WiFi, Anonimato & Red Team |
 
-### Fase 2: Infraestrutura
-- Docker (+120 XP)
-- Cloud Basics (+150 XP)
-- Terraform (+100 XP)
+As conquistas são: Primeiro Passo, Fase Concluída, 500 XP, 1000 XP, Sequência de 7,
+Mestre, Quiz Master, Nota 10 e Praticante.
 
-### Fase 3: Data Engineering
-- PostgreSQL (+130 XP)
-- Airflow (+140 XP)
-- Analytics (+110 XP)
-
-### Fase 4: Machine Learning
-- Scikit-learn (+160 XP)
-- NLP (+140 XP)
-- LLM Integration (+130 XP)
-
-### Fase 5: DevOps
-- Kubernetes (+180 XP)
-- CI/CD Avançado (+120 XP)
-- Observability (+110 XP)
-
-### Fase 6: Soft Skills
-- Product Management (+100 XP)
-- Sales & Marketing (+90 XP)
-- Comunicação (+80 XP)
+---
 
 ## 🛠️ Tecnologias
 
-- **React 18**: Biblioteca UI
-- **TypeScript**: Tipagem estática
-- **Tailwind CSS**: Estilização utility-first
-- **Vite**: Build tool rápido
-- **Lucide React**: Ícones
+- **React 18** — interface
+- **TypeScript** (strict) — tipagem estática
+- **Tailwind CSS 3** — estilização utility-first (build-time, sem CDN em runtime)
+- **Vite 5** — build tool
+- **FastAPI + SQLite** — backend opcional de sync
+- Ícones SVG inline próprios (`src/components/Icon.tsx`) — zero dependência de ícones
+
+---
 
 ## 📁 Estrutura
 
 ```
-roadmap-ui/
-├── DESIGN.md              # Design system
-├── README.md              # Este arquivo
-├── index.html             # HTML para Vite
-├── package.json           # Dependências
-├── vite.config.ts         # Configuração Vite (base /roadmap-learning-ui/ em prod)
-├── tsconfig.json          # Configuração TypeScript
-├── docs/                  # Build publicado pelo GitHub Pages (gerado por build:pages)
-├── public/                # Assets estáticos (manifest, sw, icons)
-├── server/                # Backend opcional (FastAPI + SQLite)
+roadmap-learning-ui/
+├── DESIGN.md                  # Design system
+├── README.md
+├── index.html                 # HTML de entrada do Vite
+├── vite.config.ts             # base /roadmap-learning-ui/ em produção
+├── tailwind.config.js         # Paleta, fontes e darkMode por classe
+├── postcss.config.js
+├── package.json
+├── docs/                      # Build publicado pelo GitHub Pages (gerado)
+├── public/                    # manifest.json, sw.js, icons, robots.txt
+├── server/                    # Backend opcional (FastAPI + SQLite)
 └── src/
-    ├── main.tsx           # Entry point
-    ├── App.tsx            # AppRouter + RoadmapView
-    ├── auth.tsx           # Auth + modo convidado
-    └── data/              # Roadmap, lições, quizzes
+    ├── main.tsx               # Entry point + registro do service worker
+    ├── App.tsx                # AppRouter + RoadmapView
+    ├── Landing.tsx            # Página inicial
+    ├── Login.tsx              # Login / cadastro
+    ├── auth.tsx               # Auth + modo convidado
+    ├── store.tsx              # Estado global (progresso, notas, favoritos)
+    ├── lib/
+    │   ├── storage.ts         # localStorage com validação e try/catch
+    │   └── theme.ts           # Tema claro/escuro
+    ├── components/            # UI reutilizável (modais, cards, ícones)
+    ├── features/              # Busca, notas, gerador de IA, question generator
+    └── data/                  # Roadmap, lições, quizzes, conquistas
 ```
+
+---
 
 ## 🚢 Deploy
 
-GitHub Pages usa o modo **"Deploy from a branch"** com source `master:/docs`.
-O workflow `.github/workflows/deploy.yml` roda `npm run build:pages` e faz
-commit em `docs/` a cada push no `master`, mantendo o site atualizado.
+O GitHub Pages deste repositório usa **"Deploy from a branch"** com source `master:/docs`.
+O workflow `.github/workflows/deploy.yml` roda `npm run build:pages` a cada push no
+`master` e faz commit do resultado em `docs/`, mantendo o site atualizado.
+
+> O `base` do Vite é `/roadmap-learning-ui/` em produção. Se o repositório for
+> renomeado ou o site passar a ser servido na raiz, ajuste `base` em `vite.config.ts`.
+
+---
 
 ## 🎨 Customização
 
-### Adicionar Nova Skill
-Edite o array `phases` no componente `RoadmapApp`:
+### Adicionar uma skill
+Edite `src/data/roadmap-dev.ts` (array `initialPhases`). Cada skill tem
+`id`, `name`, `description`, `xp` e `resources`.
 
-```typescript
-{
-  id: 'nova-skill',
-  name: 'Nome da Skill',
-  description: 'Descrição da skill',
-  xp: 100,
-  completed: false,
-  resources: ['Recurso 1']
-}
-```
+### Adicionar uma conquista
+Edite `src/data/achievements.ts` (array `initialAchievements`). O campo `icon` precisa
+ser um dos nomes disponíveis em `src/components/Icon.tsx`.
 
-### Adicionar Nova Conquista
-Edite o array `achievements`:
+### Mudar as cores
+A paleta está em `tailwind.config.js` (`theme.extend.colors`) e documentada no `DESIGN.md`.
 
-```typescript
-{
-  id: 'nova-conquista',
-  name: 'Nome da Conquista',
-  description: 'Descrição',
-  icon: 'star',
-  earned: false
-}
-```
+### Ajustar o backend
+Variáveis de ambiente opcionais:
 
-### Mudar Cores
-As cores estão definidas no DESIGN.md e no componente. Cada fase tem sua cor:
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `ROADMAP_DB` | `server/roadmap.db` | Caminho do banco SQLite |
+| `ROADMAP_ALLOWED_ORIGINS` | origem do Pages + localhost | Origens liberadas no CORS |
+| `ROADMAP_SESSION_TTL_HOURS` | `168` (7 dias) | Validade da sessão |
+| `ROADMAP_LOGIN_RATE_LIMIT` | `10` | Tentativas de login por minuto e por IP |
 
-- Fase 1: `#10B981` (Verde)
-- Fase 2: `#3B82F6` (Azul)
-- Fase 3: `#8B5CF6` (Roxo)
-- Fase 4: `#F59E0B` (Amarelo)
-- Fase 5: `#EF4444` (Vermelho)
-- Fase 6: `#EC4899` (Rosa)
-
-## 📱 Responsivo
-
-A UI é totalmente responsiva:
-- **Mobile**: Layout empilhado, cards cheios
-- **Tablet**: Grid de conquistas 3 colunas
-- **Desktop**: Layout completo com sidebar
+---
 
 ## 🔧 Troubleshooting
 
-### Progresso não salva
-- Verifique se o localStorage está habilitado
-- Limpe o cache do navegador
+**Progresso não salva** — verifique se o `localStorage` está liberado (modo privativo
+bloqueia). O progresso do modo convidado é local por definição.
 
-### Ícones não aparecem
-- Verifique a conexão com a internet (ícones são SVG inline)
+**O backend não conecta** — o CORS só libera as origens em `ROADMAP_ALLOWED_ORIGINS`.
+Inclua a origem exata do frontend.
 
-### Animações lentas
-- Reduza `motion` no CSS se necessário
-- Verifique se `prefers-reduced-motion` está ativo
+**Cache antigo após o deploy** — o service worker usa cache versionado; se algo travar,
+use "Limpar dados do site" nas configurações do navegador.
+
+**Ícones não aparecem** — os ícones são SVG inline, não dependem de rede.
 
 ---
 
 **Desenvolvido por:** Ismael Douglas
-**Data:** 13 de julho de 2026
-**Versão:** 1.0.0
+**Licença:** MIT

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, ReactNode } from 'react';
 
 export interface AuthResult {
   ok: boolean;
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(username);
   };
 
-  const authRequest = async (
+  const authRequest = useCallback(async (
     path: '/api/login' | '/api/register',
     username: string,
     password: string,
@@ -85,27 +85,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Rede fora / backend não publicado — o modo local continua funcionando.
       return { ok: false, message: NETWORK_ERROR };
     }
-  };
+  }, []);
 
-  const login = (username: string, password: string) => authRequest('/api/login', username, password);
-  const register = (username: string, password: string) => authRequest('/api/register', username, password);
+  const login = useCallback((username: string, password: string) => authRequest('/api/login', username, password), [authRequest]);
+  const register = useCallback((username: string, password: string) => authRequest('/api/register', username, password), [authRequest]);
 
-  const enterGuest = () => {
+  const enterGuest = useCallback(() => {
     localStorage.setItem(GUEST_KEY, '1');
     setIsGuest(true);
     setIsAuthenticated(false);
     setUser('Visitante');
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setIsAuthenticated(false);
     setIsGuest(false);
     setUser(null);
     localStorage.removeItem(LS_KEY);
     localStorage.removeItem(GUEST_KEY);
-  };
+  }, []);
 
-  const getToken = (): string | null => {
+  // Estável entre renders: o token é lido do storage a cada chamada, mas a
+  // identidade da função não muda — isso mantém os efeitos que dependem
+  // dela de rodarem apenas quando o token realmente muda.
+  const getToken = useCallback((): string | null => {
     const stored = localStorage.getItem(LS_KEY);
     if (stored) {
       try {
@@ -114,10 +117,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch { /* ignore corrupt value */ }
     }
     return null;
-  };
+  }, []);
+
+  const value = useMemo<AuthState>(() => ({
+    isAuthenticated,
+    isGuest,
+    user,
+    login,
+    register,
+    enterGuest,
+    logout,
+    getToken,
+  }), [isAuthenticated, isGuest, user, login, register, enterGuest, logout, getToken]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isGuest, user, login, register, enterGuest, logout, getToken }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ismaeldouglasdev.github.io/roadmap-learning-ui/sitemap.xml

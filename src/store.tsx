@@ -1,4 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react';
+import { loadNotes, mergeNotes, NotesMap, saveNotes } from './features/notes/notes-storage';
+import { readStringArray, writeJson } from './lib/storage';
+
+const FAVORITES_KEY = 'roadmap-favorites';
 
 interface StoreState {
   searchQuery: string;
@@ -7,14 +11,14 @@ interface StoreState {
     completion: ('done' | 'not_done')[];
     difficulty: ('easy' | 'medium' | 'hard')[];
   };
-  notes: Record<string, string>;
+  notes: NotesMap;
   favorites: Set<string>;
   // actions
   setSearchQuery: (q: string) => void;
   toggleFilter: (category: 'type' | 'completion' | 'difficulty', value: string) => void;
   setNote: (topicId: string, text: string) => void;
   toggleFavorite: (topicId: string) => void;
-  hydrate: (notes: Record<string, string>, favorites: string[]) => void;
+  hydrate: (notes: NotesMap, favorites: string[]) => void;
 }
 
 const StoreContext = createContext<StoreState | undefined>(undefined);
@@ -26,58 +30,71 @@ export const StoreProvider: React.FC<{children: ReactNode}> = ({ children }) => 
     completion: [] as ('done' | 'not_done')[],
     difficulty: [] as ('easy' | 'medium' | 'hard')[],
   });
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  const toggleFilter = (category: 'type' | 'completion' | 'difficulty', value: string) => {
+  // Estado inicializado direto do storage: sem efeito de carga, sem a janela
+  // em que uma gravação disparada na montagem sobrescreveria o que acabou
+  // de ser lido do disco.
+  const [notes, setNotes] = useState<NotesMap>(() => loadNotes());
+  const [favorites, setFavorites] = useState<Set<string>>(() => new Set(readStringArray(FAVORITES_KEY)));
+
+  const toggleFilter = useCallback((category: 'type' | 'completion' | 'difficulty', value: string) => {
     setSearchFilters(prev => {
       const arr = prev[category] as string[];
       const exists = arr.includes(value);
       const newArr = exists ? arr.filter(v => v !== value) : [...arr, value];
       return { ...prev, [category]: newArr };
     });
-  };
-
-  const setNote = (topicId: string, text: string) => {
-    setNotes(prev => ({ ...prev, [topicId]: text }));
-    localStorage.setItem('roadmap-notes', JSON.stringify({ ...notes, [topicId]: text }));
-  };
-
-  const toggleFavorite = (topicId: string) => {
-    setFavorites(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(topicId)) newSet.delete(topicId); else newSet.add(topicId);
-      localStorage.setItem('roadmap-favorites', JSON.stringify(Array.from(newSet)));
-      return newSet;
-    });
-  };
-
-  const hydrate = (notesData: Record<string, string>, favoritesData: string[]) => {
-    setNotes(notesData);
-    setFavorites(new Set(favoritesData));
-    localStorage.setItem('roadmap-notes', JSON.stringify(notesData));
-    localStorage.setItem('roadmap-favorites', JSON.stringify(favoritesData));
-  };
-
-  React.useEffect(() => {
-    const storedNotes = localStorage.getItem('roadmap-notes');
-    if (storedNotes) setNotes(JSON.parse(storedNotes));
-    const storedFav = localStorage.getItem('roadmap-favorites');
-    if (storedFav) setFavorites(new Set(JSON.parse(storedFav)));
   }, []);
 
+  // Atualizadores funcionais puros: nada de ler o estado do closure para
+  // decidir o próximo valor (isso perderia escritas em sequência rápida).
+  const setNote = useCallback((topicId: string, text: string) => {
+    setNotes(prev => ({ ...prev, [topicId]: text }));
+  }, []);
+
+  const toggleFavorite = useCallback((topicId: string) => {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(topicId)) next.delete(topicId); else next.add(topicId);
+      return next;
+    });
+  }, []);
+
+  // Aplica o estado vindo do servidor sem descartar o que existe localmente:
+  // o local representa a edição mais recente (ex.: usuário offline).
+  const hydrate = useCallback((serverNotes: NotesMap, serverFavorites: string[]) => {
+    setNotes(prev => mergeNotes(prev, serverNotes));
+    setFavorites(prev => {
+      const next = new Set(prev);
+      serverFavorites.forEach(id => next.add(id));
+      return next;
+    });
+  }, []);
+
+  // Persistência em efeitos puros: sem closure obsoleto e sem escrita dentro
+  // de um atualizador de estado.
+  React.useEffect(() => {
+    saveNotes(notes);
+  }, [notes]);
+
+  React.useEffect(() => {
+    writeJson(FAVORITES_KEY, Array.from(favorites));
+  }, [favorites]);
+
+  const value = useMemo<StoreState>(() => ({
+    searchQuery,
+    searchFilters,
+    notes,
+    favorites,
+    setSearchQuery,
+    toggleFilter,
+    setNote,
+    toggleFavorite,
+    hydrate,
+  }), [searchQuery, searchFilters, notes, favorites, toggleFilter, setNote, toggleFavorite, hydrate]);
+
   return (
-    <StoreContext.Provider value={{
-      searchQuery,
-      searchFilters,
-      notes,
-      favorites,
-      setSearchQuery,
-      toggleFilter,
-      setNote,
-      toggleFavorite,
-      hydrate,
-    }}>
+    <StoreContext.Provider value={value}>
       {children}
     </StoreContext.Provider>
   );

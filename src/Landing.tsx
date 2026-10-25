@@ -22,48 +22,48 @@ const phases = [
 ];
 
 export const Landing: React.FC<LandingProps> = ({ onLogin, onGuest }) => (
-  <div className="min-h-screen bg-indigo-950">
-    <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-cream-200 flex items-center justify-center">
+  <div className="min-h-[100dvh] bg-indigo-950 overflow-x-clip">
+    <nav className="max-w-6xl mx-auto px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-10 h-10 rounded-xl bg-cream-200 flex items-center justify-center flex-shrink-0">
           <Icon n="lightning" s={22} c="text-indigo-950" />
         </div>
-        <span className="font-heading text-xl font-bold text-cream-200">RoadmapDev</span>
+        <span className="font-heading text-lg sm:text-xl font-bold text-cream-200 truncate">RoadmapMaster</span>
       </div>
-      <button onClick={onLogin} className="px-5 py-2.5 rounded-xl bg-cream-200/10 hover:bg-cream-200/20 text-cream-200 font-medium border border-cream-200/20 transition-all">
+      <button onClick={onLogin} className="px-4 sm:px-5 py-2.5 rounded-xl bg-cream-200/10 hover:bg-cream-200/20 text-cream-200 font-medium border border-cream-200/20 transition-all flex-shrink-0">
         Entrar
       </button>
     </nav>
 
-    <section className="max-w-6xl mx-auto px-6 pt-20 pb-28 text-center">
-      <div className="inline-block px-4 py-1.5 rounded-full bg-gold/10 border border-gold/30 text-gold text-sm font-medium mb-6">
+    <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-12 sm:pt-20 pb-20 sm:pb-28 text-center">
+      <div className="inline-block px-4 py-1.5 rounded-full bg-gold/10 border border-gold/30 text-gold text-xs sm:text-sm font-medium mb-6">
         Roadmaps para Qualquer Assunto
       </div>
-      <h1 className="font-heading text-5xl md:text-7xl font-extrabold text-cream-200 leading-tight mb-6">
+      <h1 className="font-heading text-4xl sm:text-5xl md:text-7xl font-extrabold text-cream-200 leading-tight mb-6">
         Crie seu Próximo<br />
         <span className="text-gold">Roadmap</span>
       </h1>
-      <p className="text-lg md:text-xl text-cream-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+      <p className="text-base sm:text-lg md:text-xl text-cream-400 max-w-2xl mx-auto mb-10 leading-relaxed">
         Programação, moda, culinária, negócios — qualquer assunto que você queira dominar. Gere um roadmap gamificado com XP, conquistas e quizzes.
       </p>
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <button onClick={onGuest} className="px-8 py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+        <button onClick={onGuest} className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-base sm:text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none">
           Começar sem conta
         </button>
-        <button onClick={onLogin} className="px-8 py-4 rounded-2xl border border-cream-200/20 text-cream-200 font-medium hover:bg-cream-200/10 transition-all">
+        <button onClick={onLogin} className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl border border-cream-200/20 text-cream-200 font-medium text-base sm:text-lg hover:bg-cream-200/10 transition-all motion-reduce:transition-none">
           Entrar
         </button>
-        <a href="#features" className="px-8 py-4 rounded-2xl border border-cream-200/20 text-cream-200 font-medium hover:bg-cream-200/10 transition-all">
+        <a href="#features" className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl border border-cream-200/20 text-cream-200 font-medium text-base sm:text-lg hover:bg-cream-200/10 transition-all motion-reduce:transition-none">
           Saiba Mais ↓
         </a>
       </div>
     </section>
 
-    <section id="features" className="max-w-6xl mx-auto px-6 pb-20">
-      <h2 className="font-heading text-3xl font-bold text-cream-200 text-center mb-12">Por que usar o RoadmapDev?</h2>
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section id="features" className="max-w-6xl mx-auto px-5 sm:px-6 pb-16 sm:pb-20">
+      <h2 className="font-heading text-2xl sm:text-3xl font-bold text-cream-200 text-center mb-8 sm:mb-12">Por que usar o RoadmapMaster?</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {features.map((f, i) => (
-          <div key={i} className="p-6 rounded-2xl bg-indigo-900/50 border border-cream-200/10 hover:border-gold/30 transition-all">
+          <div key={i} className="p-5 sm:p-6 rounded-2xl bg-indigo-900/50 border border-cream-200/10 hover:border-gold/30 transition-all motion-reduce:transition-none">
             <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center mb-4">
               <Icon n={f.icon} s={24} c="text-gold" />
             </div>
@@ -74,8 +74,8 @@ export const Landing: React.FC<LandingProps> = ({ onLogin, onGuest }) => (
       </div>
     </section>
 
-    <section className="max-w-6xl mx-auto px-6 pb-20">
-      <h2 className="font-heading text-3xl font-bold text-cream-200 text-center mb-12">Qualquer Assunto, Um Plano Claro</h2>
+    <section className="max-w-6xl mx-auto px-5 sm:px-6 pb-16 sm:pb-20">
+      <h2 className="font-heading text-2xl sm:text-3xl font-bold text-cream-200 text-center mb-8 sm:mb-12">Qualquer Assunto, Um Plano Claro</h2>
       <div className="relative">
         <div className="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-sky-500 to-violet-500 rounded-full hidden md:block" />
         <div className="space-y-4">
@@ -84,10 +84,10 @@ export const Landing: React.FC<LandingProps> = ({ onLogin, onGuest }) => (
               <div className={`hidden md:flex absolute left-4 w-10 h-10 rounded-full ${p.color} items-center justify-center text-white font-bold border-4 border-indigo-950`}>
                 {p.n}
               </div>
-              <div className="flex-1 p-5 rounded-2xl bg-indigo-900/50 border border-cream-200/10 hover:border-cream-200/20 transition-all">
+              <div className="flex-1 p-5 rounded-2xl bg-indigo-900/50 border border-cream-200/10 hover:border-cream-200/20 transition-all motion-reduce:transition-none">
                 <div className="flex items-center gap-3">
-                  <span className={`md:hidden w-8 h-8 rounded-full ${p.color} flex items-center justify-center text-white text-sm font-bold`}>{p.n}</span>
-                  <div>
+                  <span className={`md:hidden w-8 h-8 rounded-full ${p.color} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>{p.n}</span>
+                  <div className="min-w-0">
                     <h3 className="font-heading text-lg font-bold text-cream-200">{p.name}</h3>
                     <p className="text-cream-400 text-sm">{p.skills}</p>
                   </div>
@@ -99,18 +99,18 @@ export const Landing: React.FC<LandingProps> = ({ onLogin, onGuest }) => (
       </div>
     </section>
 
-    <section className="max-w-6xl mx-auto px-6 pb-24 text-center">
-      <div className="p-10 rounded-3xl bg-indigo-900/30 border border-gold/20">
-        <h2 className="font-heading text-3xl font-bold text-cream-200 mb-4">Pronto para começar?</h2>
+    <section className="max-w-6xl mx-auto px-5 sm:px-6 pb-16 sm:pb-24 text-center">
+      <div className="p-6 sm:p-10 rounded-3xl bg-indigo-900/30 border border-gold/20">
+        <h2 className="font-heading text-2xl sm:text-3xl font-bold text-cream-200 mb-4">Pronto para começar?</h2>
         <p className="text-cream-400 mb-8 max-w-lg mx-auto">Descreva o assunto que quer dominar e comece sua jornada de aprendizado gamificada hoje.</p>
-        <button onClick={onGuest} className="px-10 py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105">
+        <button onClick={onGuest} className="px-6 sm:px-10 py-3.5 sm:py-4 rounded-2xl bg-gold hover:bg-gold-light text-indigo-950 font-bold text-base sm:text-lg shadow-lg shadow-gold/20 transition-all hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none">
           Criar Meu Roadmap
         </button>
       </div>
     </section>
 
     <footer className="border-t border-cream-200/10 py-8">
-      <div className="max-w-6xl mx-auto px-6 text-center text-cream-400 text-sm">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6 text-center text-cream-400 text-sm">
         Desenvolvido por Ismael Douglas — Roadmaps para qualquer assunto.
       </div>
     </footer>
