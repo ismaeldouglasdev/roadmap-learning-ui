@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Phase, Skill, Achievement, Lesson, Topic } from './types';
 import { initialPhases } from './data/roadmap-dev';
 import { initialAchievements } from './data/achievements';
@@ -21,7 +21,7 @@ import { generateRoadmap } from './features/ai-generator/generator';
 import { Landing } from './Landing';
 import { LoginPage } from './Login';
 import { readJson, writeJson } from './lib/storage';
-import { updateStreak } from './streak';
+import { normalizeStreak, updateStreak } from './streak';
 import { useTheme } from './lib/theme';
 
 type Page = 'landing' | 'login' | 'roadmap';
@@ -45,6 +45,7 @@ interface ServerProgress {
   achievements?: Achievement[];
   xp?: number;
   streak?: number;
+  lastStreakDate?: string;
   favorites?: string[];
   notes?: Record<string, string>;
 }
@@ -64,6 +65,14 @@ const loadProgressLocal = (): SavedProgress | null => {
 const saveProgressLocal = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[], lastStreakDate?: string) => {
   // Cota estourada não pode derrubar o app — a sessão segue funcionando.
   writeJson(LS_KEY, { phases: ph, achievements: ach, xp, streak, lastStreakDate, favorites: favs });
+};
+
+// Normaliza o que veio do localStorage/servidor. Dado antigo sem
+// `lastStreakDate` não tem como provar que a sequência está viva, então zera.
+const resolveStreak = (streak: unknown, lastDate: unknown) => {
+  const validLastDate = typeof lastDate === 'string' ? lastDate : null;
+  const count = typeof streak === 'number' ? streak : 0;
+  return { count: normalizeStreak(count, validLastDate), lastDate: validLastDate };
 };
 
 const loadProgressServer = async (token: string | null): Promise<ServerProgress | null> => {
@@ -91,8 +100,10 @@ const RoadmapView: React.FC = () => {
   const [phases, setPhases] = useState<Phase[]>(initialPhases);
   const [achievements, setAchievements] = useState(initialAchievements);
   const [xp, setXp] = useState(0);
-  const [streak, setStreak] = useState(1);
-  const [lastStreakDate, setLastStreakDate] = useState<string | null>(null);
+  const [streakState, setStreakState] = useState<{ count: number; lastDate: string | null }>({ count: 0, lastDate: null });
+  const streak = streakState.count;
+  const lastStreakDate = streakState.lastDate;
+  const [hydrated, setHydrated] = useState(false);
   const [expandedPhase, setExpandedPhase] = useState<string | null>('phase-1');
   const [selectedSkill, setSelectedSkill] = useState<{ skill: Skill; color: string } | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
@@ -105,11 +116,20 @@ const RoadmapView: React.FC = () => {
   const [generatorText, setGeneratorText] = useState('');
   const [showFavs, setShowFavs] = useState(false);
 
-  const hasLoadedRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Skills cujo bônus de XP já foi creditado: evita pagar o bônus de novo ao
   // recarregar a página ou quando o efeito de conclusão roda outra vez.
   const awardedSkillsRef = useRef<Set<string>>(new Set());
+
+  // Registro atômico: ler e escrever a streak no mesmo updater evita perder
+  // uma lição quando duas conclusões acontecem antes do próximo render.
+  const registerStudyToday = useCallback(() => {
+    setStreakState(prev => {
+      const result = updateStreak(prev.count, prev.lastDate);
+      if (result.streak === prev.count && result.lastDate === prev.lastDate) return prev;
+      return { count: result.streak, lastDate: result.lastDate };
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,18 +152,7 @@ const RoadmapView: React.FC = () => {
         }
         if (serverData.achievements) setAchievements(serverData.achievements);
         if (typeof serverData.xp === 'number') setXp(serverData.xp);
-        if ((serverData as any).lastStreakDate) {
-          setLastStreakDate((serverData as any).lastStreakDate);
-          if (typeof serverData.streak === 'number') setStreak(serverData.streak);
-        } else if (typeof serverData.streak === 'number' && serverData.streak > 0) {
-          // Ajuste: considera como estudado ontem com 4 dias seguidos
-          const targetStreak = serverData.streak === 1 ? 4 : serverData.streak;
-          const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-          setStreak(targetStreak);
-          setLastStreakDate(yesterday);
-        } else if (typeof serverData.streak === 'number') {
-          setStreak(serverData.streak);
-        }
+        setStreakState(resolveStreak(serverData.streak, serverData.lastStreakDate));
         hydrate(serverData.notes || {}, serverData.favorites || []);
       } else {
         const local = loadProgressLocal();
@@ -152,20 +161,10 @@ const RoadmapView: React.FC = () => {
           setPhases(local.phases);
           setAchievements(local.achievements);
           setXp(local.xp);
-          if ((local as any).lastStreakDate) {
-            setLastStreakDate((local as any).lastStreakDate);
-            if (local.streak) setStreak(local.streak);
-          } else if (local.streak && local.streak > 0) {
-            const targetStreak = local.streak === 1 ? 4 : local.streak;
-            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-            setStreak(targetStreak);
-            setLastStreakDate(yesterday);
-          } else if (local.streak) {
-            setStreak(local.streak);
-          }
+          setStreakState(resolveStreak(local.streak, local.lastStreakDate));
         }
       }
-      hasLoadedRef.current = true;
+      setHydrated(true);
     };
 
     doLoad();
@@ -175,10 +174,50 @@ const RoadmapView: React.FC = () => {
     // tecla digitada na busca, sobrescrevendo o estado do usuário.
   }, [getToken, hydrate]);
 
+  // Fecha a sequência na virada da meia-noite local. `visibilitychange`/`focus`
+  // cobrem o caso de notebook dormindo ou aba em segundo plano (timers throttled).
   useEffect(() => {
+    if (!hydrated) return;
+
+    const sync = () => {
+      setStreakState(prev => {
+        const count = normalizeStreak(prev.count, prev.lastDate);
+        return count === prev.count ? prev : { ...prev, count };
+      });
+    };
+
+    sync();
+
+    let timer: number | undefined;
+    const scheduleMidnight = () => {
+      const now = new Date();
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+      timer = window.setTimeout(() => {
+        sync();
+        scheduleMidnight();
+      }, Math.max(1000, next.getTime() - now.getTime()));
+    };
+    scheduleMidnight();
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', sync);
+
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', sync);
+    };
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
     saveProgressLocal(phases, achievements, xp, streak, Array.from(store.favorites), lastStreakDate || undefined);
 
-    if (!hasLoadedRef.current || !getToken()) return;
+    if (!getToken()) return;
 
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
@@ -214,7 +253,7 @@ const RoadmapView: React.FC = () => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [phases, achievements, xp, streak, lastStreakDate, store.favorites, store.notes, getToken]);
+  }, [hydrated, phases, achievements, xp, streak, lastStreakDate, store.favorites, store.notes, getToken]);
 
   useEffect(() => {
     const tc = phases.reduce((a, p) => a + p.skills.filter(s => s.completed).length, 0);
@@ -277,11 +316,7 @@ const RoadmapView: React.FC = () => {
     setPhases(prev => prev.map(ph => ph.id !== phaseId ? ph : { ...ph, skills: ph.skills.map(sk => sk.id !== skillId ? sk : toggle(sk)) }));
     if (selectedSkill && selectedSkill.skill.id === skillId) setSelectedSkill(prev => prev ? { ...prev, skill: toggle(prev.skill) } : null);
     setXp(prev => Math.max(0, prev + (wasCompleted ? -XP_PER_TOPIC : XP_PER_TOPIC)));
-    if (!wasCompleted) {
-      const result = updateStreak(streak, lastStreakDate);
-      setStreak(result.streak);
-      setLastStreakDate(result.lastDate);
-    }
+    if (!wasCompleted) registerStudyToday();
   };
 
   const handleExerciseToggle = (phaseId: string, skillId: string, subModId: string, exerciseId: string) => {
@@ -317,14 +352,12 @@ const RoadmapView: React.FC = () => {
     if (selectedSkill && selectedSkill.skill.id === skillId) setSelectedSkill(prev => prev ? { ...prev, skill: complete(prev.skill) } : null);
     if (!wasCompleted && xpAward > 0) {
       setXp(prev => prev + xpAward);
-      const result = updateStreak(streak, lastStreakDate);
-      setStreak(result.streak);
-      setLastStreakDate(result.lastDate);
     }
   };
 
   const handleLessonComplete = (xp: number) => {
     if (!lessonTopic) return;
+    registerStudyToday();
     const ph = phases.find(p => p.skills.some(s => s.id === lessonTopic.skillId));
     const sm = ph?.skills.find(s => s.id === lessonTopic.skillId)?.subModules.find(m => m.topics.some(t => t.id === lessonTopic.topic.id));
     if (ph && sm) completeTopic(ph.id, lessonTopic.skillId, sm.id, lessonTopic.topic.id, xp);
@@ -478,7 +511,7 @@ const RoadmapView: React.FC = () => {
       )}
 
       {quizOpen && selectedSkill && (
-        <QuizModal skillId={selectedSkill.skill.id} skillName={selectedSkill.skill.name} color={selectedSkill.color} onClose={() => setQuizOpen(false)} onPass={(qxp) => setXp(prev => prev + qxp)} />
+        <QuizModal skillId={selectedSkill.skill.id} skillName={selectedSkill.skill.name} color={selectedSkill.color} onClose={() => setQuizOpen(false)} onPass={(qxp) => { setXp(prev => prev + qxp); registerStudyToday(); }} />
       )}
 
       {lessonTopic && (

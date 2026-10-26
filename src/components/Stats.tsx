@@ -20,7 +20,7 @@ export const Stats: React.FC<{xp:number;streak:number}> = ({xp,streak}) => {
       </div>
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/15 flex items-center justify-center flex-shrink-0"><Icon n="fire" s={24} c="text-rose-500"/></div>
-        <div className="min-w-0"><div className="text-xs text-indigo-600 dark:text-cream-400">Sequencia</div><div className="text-lg font-bold text-indigo-950 dark:text-cream-100">{streak} dias</div></div>
+        <div className="min-w-0"><div className="text-xs text-indigo-600 dark:text-cream-400">Sequencia</div><div className="text-lg font-bold text-indigo-950 dark:text-cream-100">{streak} {streak === 1 ? 'dia' : 'dias'}</div></div>
       </div>
     </div>
   );
