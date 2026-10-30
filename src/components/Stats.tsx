@@ -5,11 +5,16 @@ export const Stats: React.FC<{xp:number;streak:number}> = ({xp,streak}) => {
   const lv = Math.floor(xp/200)+1;
   const next = (lv*200)-xp;
   const pct = (xp%200)/200*100;
+  const circumference = 2 * Math.PI * 24;
+  const offset = circumference - (pct / 100) * circumference;
   return (
     <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-3 p-4 bg-white dark:bg-indigo-900/60 border border-indigo-900/10 dark:border-cream-200/10 rounded-2xl">
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0" role="progressbar" aria-valuenow={xp%200} aria-valuemin={0} aria-valuemax={200} aria-label={`Progresso para o nível ${lv+1}`}>
-          <svg className="w-12 h-12 sm:w-14 sm:h-14 -rotate-90" aria-hidden="true"><circle cx="28" cy="28" r="24" stroke="#E0DCCA" strokeWidth="4" fill="none"/><circle cx="28" cy="28" r="24" stroke="#282B4A" strokeWidth="4" fill="none" strokeDasharray={`${pct*1.508} 150.8`} strokeLinecap="round"/></svg>
+          <svg className="w-12 h-12 sm:w-14 sm:h-14 -rotate-90" viewBox="0 0 56 56" aria-hidden="true">
+            <circle cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="none" className="text-indigo-100 dark:text-cream-200/30" />
+            <circle cx="28" cy="28" r="24" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="text-indigo-950 dark:text-gold" />
+          </svg>
           <div className="absolute inset-0 flex items-center justify-center"><span className="text-sm font-bold text-indigo-950 dark:text-cream-100">{lv}</span></div>
         </div>
         <div className="min-w-0"><div className="text-xs text-indigo-600 dark:text-cream-400">Nivel</div><div className="text-xs sm:text-sm font-medium text-indigo-950 dark:text-cream-100">{next} XP p/ proximo</div></div>

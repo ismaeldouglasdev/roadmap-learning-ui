@@ -4,7 +4,7 @@ export const typeIcon: Record<string,string> = { doc:'book', video:'video', cour
 export const typeColor: Record<string,string> = { doc:'#3B82F6', video:'#EF4444', course:'#10B981', exercise:'#F59E0B', article:'#8B5CF6' };
 export const typeLabel: Record<string,string> = { doc:'Documentação', video:'Video', course:'Curso', exercise:'Exercicio', article:'Artigo' };
 
-export const Icon: React.FC<{n:string;s?:number;c?:string}> = ({n,s=24,c=''}) => {
+export const Icon: React.FC<{n:string;s?:number;c?:string;filled?:boolean}> = ({n,s=24,c='',filled=false}) => {
   const d: Record<string,React.ReactNode> = {
     code:<><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>,
     server:<><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></>,
@@ -27,6 +27,7 @@ export const Icon: React.FC<{n:string;s?:number;c?:string}> = ({n,s=24,c=''}) =>
     play:<polygon points="5 3 19 12 5 21 5 3"/>,
     x:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
     arrowLeft:<polyline points="15 18 9 12 15 6"/>,
+    pencil:<><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></>,
   };
-  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={c} aria-hidden="true" focusable="false">{d[n]}</svg>;
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={c} aria-hidden="true" focusable="false">{d[n]}</svg>;
 };

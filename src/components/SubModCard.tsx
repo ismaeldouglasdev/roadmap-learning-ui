@@ -1,11 +1,13 @@
 import React, { useId } from 'react';
-import { SubModule } from '../types';
+import { SubModule, Topic } from '../types';
 import { Icon } from './Icon';
 import { Bar } from './Bar';
 import { TopicRow } from './TopicRow';
+import { useStore } from '../store';
 
-export const SubModCard: React.FC<{sm:SubModule;exp:boolean;onToggle:()=>void;onTopic:(id:string)=>void;onExercise:(id:string)=>void;onStudy:(id:string)=>void;color:string}> = ({sm,exp,onToggle,onTopic,onExercise,onStudy,color}) => {
+export const SubModCard: React.FC<{sm:SubModule;exp:boolean;onToggle:()=>void;onTopic:(id:string)=>void;onExercise:(id:string)=>void;onStudy:(id:string)=>void;onNotes:(t:Topic)=>void;color:string}> = ({sm,exp,onToggle,onTopic,onExercise,onStudy,onNotes,color}) => {
   const panelId = useId();
+  const { favorites, notes, toggleFavorite } = useStore();
   const done = sm.topics.filter(t=>t.completed).length;
   const pct = (done/sm.topics.length)*100;
   const exDone = sm.exercises?.filter(e=>e.completed).length||0;
@@ -27,7 +29,7 @@ export const SubModCard: React.FC<{sm:SubModule;exp:boolean;onToggle:()=>void;on
       </button>
       {exp && (
         <div id={panelId} className="px-4 pb-4 space-y-2">
-          {sm.topics.map(t=><TopicRow key={t.id} t={t} onToggle={()=>onTopic(t.id)} onStudy={()=>onStudy(t.id)}/>)}
+          {sm.topics.map(t=><TopicRow key={t.id} t={t} favorite={favorites.has(t.id)} hasNote={Boolean((notes[t.id]||'').trim())} onToggle={()=>onTopic(t.id)} onStudy={()=>onStudy(t.id)} onFavorite={()=>toggleFavorite(t.id)} onNotes={()=>onNotes(t)}/>)}
           {sm.exercises&&sm.exercises.length>0&&(
             <div className="mt-3 pt-3 border-t border-indigo-900/10 dark:border-cream-200/10">
               <h5 className="text-xs font-semibold text-indigo-500 dark:text-cream-400 mb-2 uppercase tracking-wider">Exercicios</h5>

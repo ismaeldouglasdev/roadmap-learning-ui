@@ -1,62 +1,104 @@
-import React, { useState } from 'react';
-import { quizData } from '../data/quizzes';
+import React, { useRef, useState } from 'react';
+import { QuizData } from '../types';
 import { Icon } from './Icon';
 import { Bar } from './Bar';
 import { Modal } from './Modal';
 
-export const QuizModal: React.FC<{skillId:string;skillName:string;color:string;onClose:()=>void;onPass:(xp:number)=>void}> = ({skillId,skillName,color,onClose,onPass}) => {
-  const quiz = quizData.find(q=>q.skillId===skillId);
-  const [current,setCurrent] = useState(0);
-  const [selected,setSelected] = useState<number|null>(null);
-  const [showResult,setShowResult] = useState(false);
-  const [score,setScore] = useState(0);
-  const [answers,setAnswers] = useState<(number|null)[]>([]);
+export const QUIZ_XP = 25;
 
-  if(!quiz) return null;
+export interface QuizOutcome {
+  xp: number;
+  passed: boolean;
+  perfect: boolean;
+  score: number;
+  total: number;
+}
+
+interface QuizModalProps {
+  quiz?: QuizData;
+  skillName: string;
+  color: string;
+  /** O usuário já havia passado neste quiz antes (XP não é pago de novo). */
+  alreadyPassed?: boolean;
+  onClose: () => void;
+  onComplete: (outcome: QuizOutcome) => void;
+}
+
+const EmptyQuiz: React.FC<{skillName:string;color:string;onClose:()=>void}> = ({skillName,color,onClose}) => (
+  <Modal isOpen onClose={onClose} title={`${skillName} Quiz`} panelClassName="max-w-md" bodyClassName="p-6 sm:p-8 text-center">
+    <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-indigo-100 dark:bg-indigo-800/60">
+      <Icon n="brain" s={32} c="text-indigo-500 dark:text-cream-300"/>
+    </div>
+    <h3 className="font-heading text-xl font-bold text-indigo-950 dark:text-cream-100 mb-2">Quiz em breve</h3>
+    <p className="text-sm text-indigo-600 dark:text-cream-400 mb-6">
+      Ainda não há perguntas para <strong>{skillName}</strong>. Use as lições e os exercícios enquanto preparamos o quiz.
+    </p>
+    <button onClick={onClose} className="w-full py-3 rounded-xl font-semibold text-cream-200" style={{backgroundColor:color}}>Fechar</button>
+  </Modal>
+);
+
+export const QuizModal: React.FC<QuizModalProps> = ({ quiz, skillName, color, alreadyPassed = false, onClose, onComplete }) => {
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<(number | null)[]>([]);
+  const [showResult, setShowResult] = useState(false);
+  const reportedRef = useRef(false);
+
+  if (!quiz) return <EmptyQuiz skillName={skillName} color={color} onClose={onClose} />;
+
   const q = quiz.questions[current];
   const total = quiz.questions.length;
-  const isLast = current===total-1;
+  const isLast = current === total - 1;
+  // A pontuação é sempre derivada das respostas: contar no clique e somar de
+  // novo no "Próxima" pagava a última pergunta correta duas vezes.
+  const score = answers.reduce((acc, answer, idx) => {
+    if (answer !== null && answer === quiz.questions[idx].correctIndex) {
+      return (acc ?? 0) + 1;
+    }
+    return acc ?? 0;
+  }, 0) ?? 0;
+  const passed = total > 0 && score >= Math.ceil(total * 0.6);
+  const perfect = total > 0 && score === total;
 
-  const handleSelect = (idx:number) => {
-    if(selected!==null) return;
+  const handleSelect = (idx: number) => {
+    if (selected !== null) return;
     setSelected(idx);
-    const newAnswers = [...answers, idx];
-    setAnswers(newAnswers);
-    if(idx===q.correctIndex) setScore(s=>s+1);
+    setAnswers(prev => {
+      const next = [...prev];
+      next[current] = idx;
+      return next;
+    });
   };
 
   const handleNext = () => {
-    if(isLast){
+    if (isLast) {
       setShowResult(true);
-      const finalScore = selected===q.correctIndex ? score+1 : score;
-      const passed = finalScore >= Math.ceil(total*0.6);
-      if(passed) onPass(25);
-    } else {
-      setCurrent(c=>c+1);
-      setSelected(null);
+      if (!reportedRef.current) {
+        reportedRef.current = true;
+        onComplete({ xp: QUIZ_XP, passed, perfect, score: score || 0, total });
+      }
+      return;
     }
+    setCurrent(c => c + 1);
+    setSelected(null);
   };
 
-  const finalScore = score;
-  const passed = finalScore >= Math.ceil(total*0.6);
-
-  if(showResult){
+  if (showResult) {
     return (
-      <Modal
-        isOpen
-        onClose={onClose}
-        title="Resultado do quiz"
-        header={null}
-        panelClassName="max-w-md"
-        bodyClassName="p-6 sm:p-8 text-center"
-      >
+      <Modal isOpen onClose={onClose} title="Resultado do quiz" header={null} panelClassName="max-w-md" bodyClassName="p-6 sm:p-8 text-center">
         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full mx-auto mb-4 flex items-center justify-center ${passed?'bg-emerald-100 dark:bg-emerald-500/20':'bg-rose-100 dark:bg-rose-500/20'}`}>
-          <Icon n={passed?'star':'x'} s={40} c={passed?'text-emerald-500':'text-rose-500'}/>
+          <Icon n={passed?'star':'x'} s={40} c={passed?'text-emerald-500':'text-rose-500'} filled={passed}/>
         </div>
         <h3 className="font-heading text-2xl font-bold text-indigo-950 dark:text-cream-100 mb-2">{passed?'Parabéns!':'Continue estudando'}</h3>
         <p className="text-indigo-600 dark:text-cream-400 mb-4">{passed?'Você passou no quiz!':'Não atingiu a nota mínima (60%)'}</p>
-        <div className="text-4xl sm:text-5xl font-bold mb-4" style={{color:passed?color:'#EF4444'}}>{finalScore}/{total}</div>
-        <p className="text-sm text-indigo-600 dark:text-cream-400 mb-6">{passed?'+25 XP ganhos!':'Tente novamente após estudar mais'}</p>
+        <div className="text-4xl sm:text-5xl font-bold mb-4" style={{color:passed?color:'#EF4444'}}>{score}/{total}</div>
+        <p className="text-sm text-indigo-600 dark:text-cream-400 mb-6">
+          {!passed
+            ? 'Tente novamente após estudar mais.'
+            : alreadyPassed
+              ? 'Revisão concluída — o XP deste quiz já foi creditado.'
+              : `+${QUIZ_XP} XP ganhos!`}
+        </p>
         <button onClick={onClose} className="w-full py-3 rounded-xl font-semibold text-cream-200" style={{backgroundColor:color}}>Fechar</button>
       </Modal>
     );
@@ -99,7 +141,7 @@ export const QuizModal: React.FC<{skillId:string;skillName:string;color:string;o
           if(isSelected) cls = isCorrect?'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10':'border-rose-500 bg-rose-50 dark:bg-rose-500/10';
           else if(showCorrect) cls = 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10';
           return (
-            <button key={idx} onClick={()=>handleSelect(idx)} disabled={selected!==null} className={`w-full p-3 rounded-xl border-2 text-left transition-all ${cls}`}>
+            <button key={idx} onClick={()=>handleSelect(idx)} disabled={selected!==null} aria-pressed={isSelected} className={`w-full p-3 rounded-xl border-2 text-left transition-all ${cls}`}>
               <div className="flex items-center gap-3">
                 <span className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm font-medium flex-shrink-0">{String.fromCharCode(65+idx)}</span>
                 <span className="text-sm text-indigo-950 dark:text-cream-100">{opt}</span>

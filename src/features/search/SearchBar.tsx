@@ -20,12 +20,23 @@ const difficultyOptions = [
   { value: 'hard', label: 'Difícil' },
 ];
 
+const isInputActive = () => {
+  const active = document.activeElement;
+  return active?.tagName === 'INPUT' || active?.tagName === 'TEXTAREA' || active?.getAttribute('contenteditable') === 'true';
+};
+
+const isModalOpen = () => {
+  return document.querySelector('[role="dialog"][aria-modal="true"]') !== null;
+};
+
 export const SearchBar: React.FC = () => {
   const { searchQuery, searchFilters, setSearchQuery, toggleFilter } = useStore();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (isInputActive() || isModalOpen()) return;
+      
       if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement !== inputRef.current) {
         e.preventDefault();
         inputRef.current?.focus();

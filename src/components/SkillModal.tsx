@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Skill } from '../types';
+import { Skill, Topic } from '../types';
 import { Icon } from './Icon';
 import { Bar } from './Bar';
 import { SubModCard } from './SubModCard';
 import { Modal } from './Modal';
 
-export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onTopic:(smId:string,tId:string)=>void;onExercise:(smId:string,exId:string)=>void;onStudy:(smId:string,tId:string)=>void;onQuiz:()=>void}> = ({skill,color,onClose,onTopic,onExercise,onStudy,onQuiz}) => {
+export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onTopic:(smId:string,tId:string)=>void;onExercise:(smId:string,exId:string)=>void;onStudy:(smId:string,tId:string)=>void;onNotes:(t:Topic)=>void;onQuiz:()=>void;hasQuiz?:boolean}> = ({skill,color,onClose,onTopic,onExercise,onStudy,onNotes,onQuiz,hasQuiz=true}) => {
   const [expSM,setExpSM] = useState<string|null>(skill.subModules[0]?.id||null);
   const total = skill.subModules.reduce((a,sm)=>a+sm.topics.length,0);
   const done = skill.subModules.reduce((a,sm)=>a+sm.topics.filter(t=>t.completed).length,0);
@@ -49,7 +49,7 @@ export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onT
         <div className="p-4 border-t border-indigo-900/10 dark:border-cream-200/10 bg-cream-50 dark:bg-indigo-950/40 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
           <span className="text-sm text-indigo-600 dark:text-cream-400 text-center sm:text-left">+{skill.xp} XP ao completar todos os tópicos</span>
           <div className="flex gap-2">
-            <button onClick={onQuiz} className="flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium text-cream-200 text-sm bg-indigo-950 hover:bg-indigo-900 transition-colors motion-reduce:transition-none">
+            <button onClick={onQuiz} disabled={!hasQuiz} title={hasQuiz ? 'Testar conhecimentos deste módulo' : 'Quiz ainda não disponível para esta skill'} className="flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium text-cream-200 text-sm bg-indigo-950 hover:bg-indigo-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors motion-reduce:transition-none">
               Quiz
             </button>
             <button onClick={onClose} className="flex-1 sm:flex-none px-5 py-2 rounded-lg font-medium text-indigo-950 text-sm font-medium" style={{backgroundColor:color}}>Fechar</button>
@@ -58,7 +58,7 @@ export const SkillModal: React.FC<{skill:Skill;color:string;onClose:()=>void;onT
       }
     >
       {skill.subModules.map(sm=>(
-        <SubModCard key={sm.id} sm={sm} exp={expSM===sm.id} onToggle={()=>setExpSM(expSM===sm.id?null:sm.id)} onTopic={(tid)=>onTopic(sm.id,tid)} onExercise={(eid)=>onExercise(sm.id,eid)} onStudy={(tid)=>onStudy(sm.id,tid)} color={color}/>
+        <SubModCard key={sm.id} sm={sm} exp={expSM===sm.id} onToggle={()=>setExpSM(expSM===sm.id?null:sm.id)} onTopic={(tid)=>onTopic(sm.id,tid)} onExercise={(eid)=>onExercise(sm.id,eid)} onStudy={(tid)=>onStudy(sm.id,tid)} onNotes={onNotes} color={color}/>
       ))}
     </Modal>
   );

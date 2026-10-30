@@ -2,7 +2,7 @@
 // derivada da própria localização do SW em vez de fixada em '/'.
 const BASE = new URL('./', self.location).pathname;
 const CACHE_PREFIX = 'roadmap-shell-';
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
 
 // Só o shell é precacheado; assets com hash no nome entram via cache em runtime.

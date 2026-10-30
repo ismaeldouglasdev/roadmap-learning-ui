@@ -180,6 +180,11 @@ def _create_session(cursor, user_id: int) -> str:
 
 # --- Endpoints ---
 
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
+
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 async def register_user(user: UserRegister):
     username = user.username.strip()

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Phase, Skill, Achievement, Lesson, Topic } from './types';
+import { Phase, Skill, Achievement, Lesson, Topic, QuizData } from './types';
 import { initialPhases } from './data/roadmap-dev';
+import { quizData } from './data/quizzes';
 import { initialAchievements } from './data/achievements';
 import { lessonData } from './data/lessons';
 import { generateLesson } from './features/question-generator';
@@ -31,6 +32,11 @@ const XP_PER_TOPIC = 5;
 // Backend opcional de sync. Em modo convidado nunca é chamado (progresso fica local).
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8091').replace(/\/$/, '');
 
+interface QuizResult {
+  passed: boolean;
+  perfect: boolean;
+}
+
 interface SavedProgress {
   phases: Phase[];
   achievements: Achievement[];
@@ -38,15 +44,13 @@ interface SavedProgress {
   streak: number;
   lastStreakDate?: string;
   favorites: string[];
+  /** Quizzes de roadmaps gerados (os do roadmap fixo vêm de data/quizzes). */
+  quizzes?: QuizData[];
+  /** Resultado por skill: evita pagar XP duas vezes pelo mesmo quiz. */
+  quizResults?: Record<string, QuizResult>;
 }
 
-interface ServerProgress {
-  phases?: Phase[];
-  achievements?: Achievement[];
-  xp?: number;
-  streak?: number;
-  lastStreakDate?: string;
-  favorites?: string[];
+interface ServerProgress extends Partial<SavedProgress> {
   notes?: Record<string, string>;
 }
 
@@ -62,9 +66,9 @@ const loadProgressLocal = (): SavedProgress | null => {
   return isSavedProgress(parsed) ? parsed : null;
 };
 
-const saveProgressLocal = (ph: Phase[], ach: Achievement[], xp: number, streak: number, favs: string[], lastStreakDate?: string) => {
+const saveProgressLocal = (progress: SavedProgress) => {
   // Cota estourada não pode derrubar o app — a sessão segue funcionando.
-  writeJson(LS_KEY, { phases: ph, achievements: ach, xp, streak, lastStreakDate, favorites: favs });
+  writeJson(LS_KEY, progress);
 };
 
 // Normaliza o que veio do localStorage/servidor. Dado antigo sem
@@ -115,6 +119,10 @@ const RoadmapView: React.FC = () => {
   const [generatorAnswers, setGeneratorAnswers] = useState<Record<string, string>>({});
   const [generatorText, setGeneratorText] = useState('');
   const [showFavs, setShowFavs] = useState(false);
+  // Quizzes do roadmap fixo (data/quizzes) + gerados pela IA. Inicializar com os
+  // fixos evita que o botão Quiz some antes de o progresso ser carregado.
+  const [customQuizzes, setCustomQuizzes] = useState<QuizData[]>(quizData);
+  const [quizResults, setQuizResults] = useState<Record<string, QuizResult>>({});
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Skills cujo bônus de XP já foi creditado: evita pagar o bônus de novo ao
@@ -146,22 +154,38 @@ const RoadmapView: React.FC = () => {
       };
 
       if (serverData) {
-        if (serverData.phases) {
+        // Conta recém-criada devolve `phases: []`; usar isso apagaria o roadmap
+        // inicial da tela. Só sobrescreve quando há progresso de verdade.
+        if (serverData.phases?.length) {
           markAwarded(serverData.phases);
           setPhases(serverData.phases);
         }
-        if (serverData.achievements) setAchievements(serverData.achievements);
+        if (serverData.achievements?.length) setAchievements(serverData.achievements);
         if (typeof serverData.xp === 'number') setXp(serverData.xp);
         setStreakState(resolveStreak(serverData.streak, serverData.lastStreakDate));
+        // Mantém os quizzes do roadmap fixo; os customizados do server
+        // complementam (roadmaps gerados pela IA).
+        setCustomQuizzes(() => {
+          const fixed = new Set(quizData.map(q => q.skillId));
+          return [...quizData, ...(serverData.quizzes || []).filter(q => !fixed.has(q.skillId))];
+        });
+        setQuizResults(serverData.quizResults || {});
         hydrate(serverData.notes || {}, serverData.favorites || []);
       } else {
         const local = loadProgressLocal();
         if (local) {
-          markAwarded(local.phases);
-          setPhases(local.phases);
-          setAchievements(local.achievements);
+          if (local.phases.length) {
+            markAwarded(local.phases);
+            setPhases(local.phases);
+          }
+          if (local.achievements?.length) setAchievements(local.achievements);
           setXp(local.xp);
           setStreakState(resolveStreak(local.streak, local.lastStreakDate));
+          setCustomQuizzes(() => {
+            const fixed = new Set(quizData.map(q => q.skillId));
+            return [...quizData, ...(local.quizzes || []).filter(q => !fixed.has(q.skillId))];
+          });
+          setQuizResults(local.quizResults || {});
         }
       }
       setHydrated(true);
@@ -215,7 +239,16 @@ const RoadmapView: React.FC = () => {
   useEffect(() => {
     if (!hydrated) return;
 
-    saveProgressLocal(phases, achievements, xp, streak, Array.from(store.favorites), lastStreakDate || undefined);
+    saveProgressLocal({
+      phases,
+      achievements,
+      xp,
+      streak,
+      lastStreakDate: lastStreakDate || undefined,
+      favorites: Array.from(store.favorites),
+      quizzes: customQuizzes,
+      quizResults,
+    });
 
     if (!getToken()) return;
 
@@ -234,6 +267,8 @@ const RoadmapView: React.FC = () => {
           lastStreakDate,
           favorites: Array.from(store.favorites),
           notes: store.notes,
+          quizzes: customQuizzes,
+          quizResults,
           updatedAt: new Date().toISOString(),
         };
 
@@ -253,21 +288,35 @@ const RoadmapView: React.FC = () => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [hydrated, phases, achievements, xp, streak, lastStreakDate, store.favorites, store.notes, getToken]);
+  }, [hydrated, phases, achievements, xp, streak, lastStreakDate, store.favorites, store.notes, customQuizzes, quizResults, getToken]);
 
   useEffect(() => {
-    const tc = phases.reduce((a, p) => a + p.skills.filter(s => s.completed).length, 0);
+    const topicsDone = phases.reduce((acc, ph) =>
+      acc + ph.skills.reduce((a, sk) =>
+        a + sk.subModules.reduce((b, sm) => b + sm.topics.filter(t => t.completed).length, 0), 0), 0);
+    const exercisesDone = phases.reduce((acc, ph) =>
+      acc + ph.skills.reduce((a, sk) =>
+        a + sk.subModules.reduce((b, sm) => b + (sm.exercises?.filter(e => e.completed).length || 0), 0), 0), 0);
     const cp = phases.filter(p => p.skills.every(s => s.completed)).length;
+    const quizzesPassed = Object.values(quizResults).filter(r => r.passed).length;
+    const hasPerfectQuiz = Object.values(quizResults).some(r => r.perfect);
+
+    // Conquistas nunca são revogadas: `earn` só promove de false para true,
+    // preservando a identidade do objeto quando já foi conquistada.
+    const earn = (a: Achievement, condition: boolean) => (condition && !a.earned ? { ...a, earned: true } : a);
     setAchievements(p => p.map(a => {
-      if (a.id === 'first-skill' && tc >= 1) return { ...a, earned: true };
-      if (a.id === 'phase-complete' && cp >= 1) return { ...a, earned: true };
-      if (a.id === 'xp-500' && xp >= 500) return { ...a, earned: true };
-      if (a.id === 'xp-1000' && xp >= 1000) return { ...a, earned: true };
-      if (a.id === 'streak-7' && streak >= 7) return { ...a, earned: true };
-      if (a.id === 'all-phases' && cp === phases.length) return { ...a, earned: true };
+      if (a.id === 'first-skill') return earn(a, topicsDone >= 1);
+      if (a.id === 'phase-complete') return earn(a, cp >= 1);
+      if (a.id === 'xp-500') return earn(a, xp >= 500);
+      if (a.id === 'xp-1000') return earn(a, xp >= 1000);
+      if (a.id === 'streak-7') return earn(a, streak >= 7);
+      if (a.id === 'all-phases') return earn(a, cp === phases.length);
+      if (a.id === 'quiz-pass') return earn(a, quizzesPassed >= 3);
+      if (a.id === 'quiz-perfect') return earn(a, hasPerfectQuiz);
+      if (a.id === 'exercise-5') return earn(a, exercisesDone >= 5);
       return a;
     }));
-  }, [phases, xp, streak]);
+  }, [phases, xp, streak, quizResults]);
 
   useEffect(() => {
     setPhases(p => {
@@ -296,9 +345,11 @@ const RoadmapView: React.FC = () => {
       const next = p.map(ph => {
         const skills = ph.skills.map(sk => {
           const allDone = sk.subModules.every(sm => sm.topics.every(t => t.completed));
-          if (allDone && !sk.completed) {
+          // Recalcula nos dois sentidos: desmarcar um tópico precisa desfazer a
+          // skill concluída (e travar de novo a fase seguinte).
+          if (allDone !== sk.completed) {
             changed = true;
-            return { ...sk, completed: true };
+            return { ...sk, completed: allDone };
           }
           return sk;
         });
@@ -379,8 +430,13 @@ const RoadmapView: React.FC = () => {
         learningPreference: generatorAnswers[5] || '',
         language: generatorAnswers[6] || '',
       };
-      const { phases: newPhases } = generateRoadmap(answers);
+      const { phases: newPhases, quizData: newQuizData } = generateRoadmap(answers);
       setPhases(newPhases);
+      // Mantém os quizzes do roadmap fixo; os gerados pela IA complementam.
+      setCustomQuizzes(prev => {
+        const fixed = new Set(quizData.map(q => q.skillId));
+        return [...quizData, ...newQuizData, ...prev.filter(q => !fixed.has(q.skillId) && !newQuizData.some(n => n.skillId === q.skillId))];
+      });
       setShowGenerator(false);
       setGeneratorStep(0);
       setGeneratorAnswers({});
@@ -507,11 +563,13 @@ const RoadmapView: React.FC = () => {
           onTopic={(smId, tId) => { const ph = phases.find(p => p.skills.some(s => s.id === selectedSkill.skill.id)); if (ph) handleTopicToggle(ph.id, selectedSkill.skill.id, smId, tId); }}
           onExercise={(smId, exId) => { const ph = phases.find(p => p.skills.some(s => s.id === selectedSkill.skill.id)); if (ph) handleExerciseToggle(ph.id, selectedSkill.skill.id, smId, exId); }}
           onStudy={(smId, tId) => handleStudy(selectedSkill.skill.id, smId, tId)}
+          onNotes={(t) => { setNotesTopic({ id: t.id, name: t.name, url: t.url }); setNotesOpen(true); }}
+          hasQuiz={Boolean(customQuizzes.find(q => q.skillId === selectedSkill.skill.id) || quizData.find(q => q.skillId === selectedSkill.skill.id))}
           onQuiz={() => setQuizOpen(true)} />
       )}
 
       {quizOpen && selectedSkill && (
-        <QuizModal skillId={selectedSkill.skill.id} skillName={selectedSkill.skill.name} color={selectedSkill.color} onClose={() => setQuizOpen(false)} onPass={(qxp) => { setXp(prev => prev + qxp); registerStudyToday(); }} />
+        <QuizModal quiz={customQuizzes.find(q => q.skillId === selectedSkill.skill.id) || quizData.find(q => q.skillId === selectedSkill.skill.id)} skillName={selectedSkill.skill.name} color={selectedSkill.color} alreadyPassed={quizResults[selectedSkill.skill.id]?.passed} onClose={() => setQuizOpen(false)} onComplete={(outcome) => { setQuizResults(prev => ({ ...prev, [selectedSkill.skill.id]: { passed: outcome.passed, perfect: outcome.perfect } })); if (outcome.passed && !quizResults[selectedSkill.skill.id]?.passed) { setXp(prev => prev + outcome.xp); registerStudyToday(); } }} />
       )}
 
       {lessonTopic && (
