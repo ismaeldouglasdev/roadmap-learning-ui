@@ -41,9 +41,9 @@ function generateTopics(resources: Resource[], subArea: string, subModuleIndex: 
   const topics: Topic[] = [];
   const shuffledResources = shuffleArray(resources);
   
-  const typeDistribution = pref === 'documentação' ? ['doc', 'article', 'doc', 'article', 'course'] :
-                           pref === 'vídeos' ? ['video', 'course', 'video', 'course', 'doc'] :
-                           ['doc', 'video', 'course', 'article', 'exercise'];
+    const typeDistribution = pref === 'docs' ? ['doc', 'article', 'doc', 'article', 'course'] :
+                             pref === 'videos' ? ['video', 'course', 'video', 'course', 'doc'] :
+                             ['doc', 'video', 'course', 'article', 'exercise'];
   
   for (let i = 0; i < topicCount; i++) {
     const resource = shuffledResources[i % shuffledResources.length];

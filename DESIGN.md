@@ -130,6 +130,7 @@ All spacing derives from a base of **4px**.
 - Use Phosphor Icons (rounded style)
 - Consistent stroke width: 2.0
 - Size: 24px default, 20px compact
+- Ícones disponíveis inline (zero dependência): code, server, database, brain, gear, users, star, trophy, fire, lightning, crown, check, lock, down, right, link, book, video, play, x, arrowLeft, pencil, shield, globe, utensils, camera, scissors, briefcase, heart, chat, music
 
 ## 8. Accessibility
 

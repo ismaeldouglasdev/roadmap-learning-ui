@@ -8,6 +8,7 @@ export const Bar: React.FC<{p:number;c:string;h?:number;label?:string}> = ({p,c,
       aria-valuenow={Math.round(value)}
       aria-valuemin={0}
       aria-valuemax={100}
+      aria-valuetext={`${Math.round(value)}%`}
       aria-label={label}
       className="w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
       style={{height:h}}
